@@ -219,6 +219,23 @@ footer p {
     line-height: 2;
 }
 
+/* About page */
+
+.about-page h1 {
+    font-size: 1.75rem;
+    margin-bottom: 1.25rem;
+}
+.about-page h2 {
+    font-size: 1.2rem;
+    margin-top: 2rem;
+    margin-bottom: 0.5rem;
+}
+.about-page p {
+    line-height: 1.7;
+    margin-bottom: 1rem;
+    color: var(--content);
+}
+
 /* Responsive */
 
 @media (max-width: 480px) {

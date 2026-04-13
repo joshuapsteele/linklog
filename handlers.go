@@ -242,6 +242,11 @@ type singleData struct {
 	BaseURL string
 }
 
+// pageAbout handles GET /about.
+func (s *Server) pageAbout(w http.ResponseWriter, r *http.Request) {
+	s.render(w, "about.html", nil)
+}
+
 // pageSingle handles GET /link/{id}.
 func (s *Server) pageSingle(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)

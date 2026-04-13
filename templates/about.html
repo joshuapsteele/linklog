@@ -1,0 +1,29 @@
+{{ define "title" }}About · LinkLog{{ end }}
+
+{{ define "content" }}
+<article class="about-page">
+    <h1>About LinkLog</h1>
+    <p>
+        LinkLog is a personal link blog by <a href="https://joshuapsteele.com">Joshua Steele</a>.
+        It's a running log of interesting articles, tools, and resources I've come across,
+        usually with a short note about why they caught my attention.
+    </p>
+    <p>
+        The site is built with Go and SQLite, self-hosted on a DigitalOcean droplet.
+        New links are posted from my phone using the <a href="https://getdrafts.com" rel="noopener" target="_blank">Drafts</a> app.
+        The source code and setup details are available in the
+        <a href="https://github.com/joshuapsteele/linklog" rel="noopener" target="_blank">GitHub repository</a>.
+    </p>
+    <h2>Subscribe</h2>
+    <p>
+        You can follow along via <a href="/feed.xml">RSS</a> or
+        <a href="/feed.json">JSON Feed</a> in any feed reader.
+    </p>
+    <h2>About Me</h2>
+    <p>
+        I'm Joshua Steele — Anglican priest, PhD student, and occasional writer.
+        My main site is <a href="https://joshuapsteele.com">joshuapsteele.com</a>,
+        where I write about theology, technology, and whatever else is on my mind.
+    </p>
+</article>
+{{ end }}
