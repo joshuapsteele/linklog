@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -116,7 +117,8 @@ func (s *Server) adminPostNew(w http.ResponseWriter, r *http.Request) {
 		title = meta.Title
 	}
 
-	if _, err := s.db.InsertLink(url, title, commentary, tags); err != nil {
+	link, err := s.db.InsertLink(url, title, commentary, tags)
+	if err != nil {
 		slog.Error("admin: failed to insert link", "error", err)
 		s.renderAdmin(w, "admin_new.html", map[string]any{
 			"Error": "Failed to save: " + err.Error(),
@@ -124,6 +126,8 @@ func (s *Server) adminPostNew(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	SendWebmentionAsync(s.db, link.ID, link.URL, fmt.Sprintf("%s/link/%d", s.baseURL, link.ID))
 
 	http.Redirect(w, r, "/admin?flash=Link+created", http.StatusSeeOther)
 }
@@ -210,6 +214,20 @@ func (s *Server) adminFetchLink(w http.ResponseWriter, r *http.Request) *Link {
 		return nil
 	}
 	return link
+}
+
+// adminPostWebmention re-triggers webmention sending for a link.
+func (s *Server) adminPostWebmention(w http.ResponseWriter, r *http.Request) {
+	link := s.adminFetchLink(w, r)
+	if link == nil {
+		return
+	}
+	// Reset to pending so the UI reflects that a send is in progress.
+	if err := s.db.UpdateWebmentionStatus(link.ID, "pending", ""); err != nil {
+		slog.Error("admin: failed to reset webmention status", "error", err)
+	}
+	SendWebmentionAsync(s.db, link.ID, link.URL, fmt.Sprintf("%s/link/%d", s.baseURL, link.ID))
+	http.Redirect(w, r, "/admin?flash=Webmention+queued", http.StatusSeeOther)
 }
 
 func (s *Server) renderAdmin(w http.ResponseWriter, name string, data any) {

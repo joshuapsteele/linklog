@@ -285,6 +285,38 @@
     margin-bottom: 0.5rem;
 }
 
+/* Webmention */
+.btn-webmention {
+    display: inline-block;
+    padding: 0.45rem 0.9rem;
+    background: none;
+    color: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+    width: 100%;
+}
+.btn-webmention:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.webmention-status-row {
+    font-size: 0.875rem;
+    padding-top: 0.25rem;
+}
+
+.wm-status {
+    font-weight: 600;
+}
+.wm-sent     { color: #1a7f37; }
+.wm-failed   { color: #c0392b; }
+.wm-pending  { color: var(--secondary); }
+.wm-unsupported { color: var(--secondary); font-style: italic; }
+
 /* Responsive */
 @media (max-width: 480px) {
     .admin-entry {

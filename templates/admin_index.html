@@ -30,6 +30,15 @@
     </div>
     <div class="admin-entry-actions">
         <a href="/admin/links/{{ .ID }}/edit" class="btn-secondary">Edit</a>
+        <form method="POST" action="/admin/links/{{ .ID }}/webmention">
+            <button type="submit" class="btn-webmention" title="Re-send webmention">
+                {{- if eq .WebmentionStatus "sent" -}}✓ sent
+                {{- else if eq .WebmentionStatus "failed" -}}⚠ retry
+                {{- else if eq .WebmentionStatus "unsupported" -}}— n/a
+                {{- else -}}↺ mention
+                {{- end -}}
+            </button>
+        </form>
         <form method="POST" action="/admin/links/{{ .ID }}/delete" onsubmit="return confirm('Delete this link?')">
             <button type="submit" class="btn-danger">Delete</button>
         </form>

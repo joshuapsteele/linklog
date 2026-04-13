@@ -52,6 +52,9 @@ func (s *Server) apiCreateLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fire webmention in the background; never blocks the response.
+	SendWebmentionAsync(s.db, link.ID, link.URL, fmt.Sprintf("%s/link/%d", s.baseURL, link.ID))
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(link)

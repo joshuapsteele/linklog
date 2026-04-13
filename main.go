@@ -123,6 +123,7 @@ func main() {
 			r.Get("/links/{id}/edit", srv.adminGetEdit)
 			r.Post("/links/{id}/edit", srv.adminPostEdit)
 			r.Post("/links/{id}/delete", srv.adminPostDelete)
+			r.Post("/links/{id}/webmention", srv.adminPostWebmention)
 		})
 	})
 

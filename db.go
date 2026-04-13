@@ -64,16 +64,24 @@ func (db *DB) migrate() error {
 	CREATE INDEX IF NOT EXISTS idx_links_created_at ON links(created_at DESC);
 	CREATE INDEX IF NOT EXISTS idx_links_published ON links(published);
 	`
-	_, err := db.conn.Exec(schema)
-	return err
+	if _, err := db.conn.Exec(schema); err != nil {
+		return err
+	}
+
+	// Additive migrations: ALTER TABLE does not support IF NOT EXISTS in SQLite,
+	// so we attempt each and silently ignore "duplicate column" errors.
+	db.conn.Exec(`ALTER TABLE links ADD COLUMN webmention_status TEXT NOT NULL DEFAULT 'pending'`)
+	db.conn.Exec(`ALTER TABLE links ADD COLUMN webmention_endpoint TEXT NOT NULL DEFAULT ''`)
+
+	return nil
 }
 
 // InsertLink inserts a new link and returns it with its assigned ID and timestamps.
 func (db *DB) InsertLink(url, title, commentary, tags string) (*Link, error) {
 	now := time.Now().UTC()
 	result, err := db.conn.Exec(
-		`INSERT INTO links (url, title, commentary, tags, created_at, updated_at, published)
-		 VALUES (?, ?, ?, ?, ?, ?, 1)`,
+		`INSERT INTO links (url, title, commentary, tags, created_at, updated_at, published, webmention_status, webmention_endpoint)
+		 VALUES (?, ?, ?, ?, ?, ?, 1, 'pending', '')`,
 		url, title, commentary, tags, now, now,
 	)
 	if err != nil {
@@ -86,21 +94,31 @@ func (db *DB) InsertLink(url, title, commentary, tags string) (*Link, error) {
 	}
 
 	return &Link{
-		ID:         id,
-		URL:        url,
-		Title:      title,
-		Commentary: commentary,
-		Tags:       tags,
-		CreatedAt:  now,
-		UpdatedAt:  now,
-		Published:  true,
+		ID:               id,
+		URL:              url,
+		Title:            title,
+		Commentary:       commentary,
+		Tags:             tags,
+		CreatedAt:        now,
+		UpdatedAt:        now,
+		Published:        true,
+		WebmentionStatus: "pending",
 	}, nil
+}
+
+// UpdateWebmentionStatus sets the webmention_status and webmention_endpoint for a link.
+func (db *DB) UpdateWebmentionStatus(id int64, status, endpoint string) error {
+	_, err := db.conn.Exec(
+		`UPDATE links SET webmention_status = ?, webmention_endpoint = ? WHERE id = ?`,
+		status, endpoint, id,
+	)
+	return err
 }
 
 // GetLink returns a single link by ID, or nil if not found.
 func (db *DB) GetLink(id int64) (*Link, error) {
 	row := db.conn.QueryRow(
-		`SELECT id, url, title, commentary, tags, created_at, updated_at, published
+		`SELECT id, url, title, commentary, tags, created_at, updated_at, published, webmention_status, webmention_endpoint
 		 FROM links WHERE id = ?`, id,
 	)
 	return scanLink(row)
@@ -193,7 +211,7 @@ func (db *DB) ListLinks(f LinkFilter) ([]Link, error) {
 		args = append(args, *f.Published)
 	}
 
-	query := "SELECT id, url, title, commentary, tags, created_at, updated_at, published FROM links"
+	query := "SELECT id, url, title, commentary, tags, created_at, updated_at, published, webmention_status, webmention_endpoint FROM links"
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
@@ -255,7 +273,11 @@ type scanner interface {
 func scanLink(s scanner) (*Link, error) {
 	var l Link
 	var createdAt, updatedAt string
-	err := s.Scan(&l.ID, &l.URL, &l.Title, &l.Commentary, &l.Tags, &createdAt, &updatedAt, &l.Published)
+	err := s.Scan(
+		&l.ID, &l.URL, &l.Title, &l.Commentary, &l.Tags,
+		&createdAt, &updatedAt, &l.Published,
+		&l.WebmentionStatus, &l.WebmentionEndpoint,
+	)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}

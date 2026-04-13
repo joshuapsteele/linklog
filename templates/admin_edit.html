@@ -24,6 +24,15 @@
             Published
         </label>
 
+        <div class="webmention-status-row">
+            <span class="label-hint">Webmention:
+                <span class="wm-status wm-{{ .Link.WebmentionStatus }}">{{ .Link.WebmentionStatus }}</span>
+                {{ if .Link.WebmentionEndpoint }}
+                <span class="label-hint">({{ .Link.WebmentionEndpoint }})</span>
+                {{ end }}
+            </span>
+        </div>
+
         <div class="form-actions">
             <button type="submit" class="btn-primary">Save changes</button>
             <a href="/admin" class="btn-secondary">Cancel</a>
