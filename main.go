@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -46,12 +47,26 @@ func main() {
 		"sub": func(a, b int) int { return a - b },
 	}
 
-	pages := []string{"feed.html", "single.html", "tag.html"}
-	templates := make(map[string]*template.Template, len(pages))
-	for _, page := range pages {
+	// Public page templates — each parsed with the shared base.
+	publicPages := []string{"feed.html", "single.html", "tag.html"}
+	// Admin page templates — each parsed with the admin base.
+	adminPages := []string{"admin_login.html", "admin_index.html", "admin_edit.html", "admin_new.html"}
+
+	templates := make(map[string]*template.Template, len(publicPages)+len(adminPages))
+
+	for _, page := range publicPages {
 		t, err := template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/base.html", "templates/"+page)
 		if err != nil {
 			slog.Error("failed to parse template", "page", page, "error", err)
+			os.Exit(1)
+		}
+		templates[page] = t
+	}
+
+	for _, page := range adminPages {
+		t, err := template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/admin_base.html", "templates/"+page)
+		if err != nil {
+			slog.Error("failed to parse admin template", "page", page, "error", err)
 			os.Exit(1)
 		}
 		templates[page] = t
@@ -62,6 +77,7 @@ func main() {
 		templates: templates,
 		baseURL:   baseURL,
 		token:     token,
+		secure:    strings.HasPrefix(baseURL, "https://"),
 	}
 
 	r := chi.NewRouter()
@@ -91,6 +107,23 @@ func main() {
 		r.Get("/links", srv.apiListLinks)
 		r.Patch("/links/{id}", srv.apiUpdateLink)
 		r.Delete("/links/{id}", srv.apiDeleteLink)
+	})
+
+	// Admin UI. Login is unauthenticated; everything else requires a valid session cookie.
+	r.Route("/admin", func(r chi.Router) {
+		r.Get("/login", srv.adminGetLogin)
+		r.Post("/login", srv.adminPostLogin)
+
+		r.Group(func(r chi.Router) {
+			r.Use(srv.adminRequireAuth)
+			r.Get("/", srv.adminIndex)
+			r.Post("/logout", srv.adminPostLogout)
+			r.Get("/links/new", srv.adminGetNew)
+			r.Post("/links/new", srv.adminPostNew)
+			r.Get("/links/{id}/edit", srv.adminGetEdit)
+			r.Post("/links/{id}/edit", srv.adminPostEdit)
+			r.Post("/links/{id}/delete", srv.adminPostDelete)
+		})
 	})
 
 	addr := fmt.Sprintf(":%s", port)

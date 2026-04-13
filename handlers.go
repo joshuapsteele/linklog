@@ -23,6 +23,7 @@ type Server struct {
 	templates map[string]*template.Template
 	baseURL   string
 	token     string
+	secure    bool // true when serving over HTTPS; controls cookie Secure flag
 }
 
 // --- API Handlers ---

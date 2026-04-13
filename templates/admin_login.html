@@ -1,0 +1,13 @@
+{{ define "title" }}Log in — LinkLog Admin{{ end }}
+
+{{ define "content" }}
+<div class="login-wrap">
+    <h1>LinkLog Admin</h1>
+    {{ if .Error }}<p class="form-error">{{ .Error }}</p>{{ end }}
+    <form method="POST" action="/admin/login" class="admin-form">
+        <label for="token">API Token</label>
+        <input type="password" id="token" name="token" autofocus autocomplete="current-password" placeholder="Paste your LINKLOG_API_TOKEN">
+        <button type="submit" class="btn-primary">Log in</button>
+    </form>
+</div>
+{{ end }}

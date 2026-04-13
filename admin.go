@@ -1,0 +1,226 @@
+package main
+
+import (
+	"log/slog"
+	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/go-chi/chi/v5"
+)
+
+const sessionCookieName = "linklog_session"
+
+// --- Cookie auth middleware ---
+
+// adminRequireAuth redirects to /admin/login if no valid session cookie is present.
+func (s *Server) adminRequireAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie(sessionCookieName)
+		if err != nil || cookie.Value != s.token {
+			http.Redirect(w, r, "/admin/login", http.StatusSeeOther)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// --- Login / logout ---
+
+// adminGetLogin shows the login form.
+func (s *Server) adminGetLogin(w http.ResponseWriter, r *http.Request) {
+	if cookie, err := r.Cookie(sessionCookieName); err == nil && cookie.Value == s.token {
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		return
+	}
+	s.renderAdmin(w, "admin_login.html", map[string]any{"Error": ""})
+}
+
+// adminPostLogin handles the login form submission.
+func (s *Server) adminPostLogin(w http.ResponseWriter, r *http.Request) {
+	if r.FormValue("token") != s.token {
+		s.renderAdmin(w, "admin_login.html", map[string]any{"Error": "Invalid token."})
+		return
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    s.token,
+		Path:     "/admin",
+		HttpOnly: true,
+		Secure:   s.secure,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   7 * 24 * 60 * 60, // 7 days
+	})
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+// adminPostLogout clears the session cookie.
+func (s *Server) adminPostLogout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:   sessionCookieName,
+		Value:  "",
+		Path:   "/admin",
+		MaxAge: -1,
+	})
+	http.Redirect(w, r, "/admin/login", http.StatusSeeOther)
+}
+
+// --- Admin pages ---
+
+// adminIndex lists all links with edit and delete controls.
+func (s *Server) adminIndex(w http.ResponseWriter, r *http.Request) {
+	// List all links regardless of published status, no limit for personal use.
+	links, err := s.db.ListLinks(LinkFilter{Limit: 500})
+	if err != nil {
+		slog.Error("admin: failed to list links", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	flash := r.URL.Query().Get("flash")
+	s.renderAdmin(w, "admin_index.html", map[string]any{
+		"Links": links,
+		"Flash": flash,
+	})
+}
+
+// adminGetNew shows the new-link form.
+func (s *Server) adminGetNew(w http.ResponseWriter, r *http.Request) {
+	s.renderAdmin(w, "admin_new.html", map[string]any{
+		"Error": "",
+		"Form":  map[string]string{},
+	})
+}
+
+// adminPostNew handles the new-link form submission.
+func (s *Server) adminPostNew(w http.ResponseWriter, r *http.Request) {
+	url := strings.TrimSpace(r.FormValue("url"))
+	title := strings.TrimSpace(r.FormValue("title"))
+	commentary := strings.TrimSpace(r.FormValue("commentary"))
+	tags := strings.TrimSpace(r.FormValue("tags"))
+
+	formVals := map[string]string{
+		"url": url, "title": title, "commentary": commentary, "tags": tags,
+	}
+
+	if url == "" || (!strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://")) {
+		s.renderAdmin(w, "admin_new.html", map[string]any{
+			"Error": "URL is required and must start with http:// or https://",
+			"Form":  formVals,
+		})
+		return
+	}
+
+	// Fetch title from the page unless the user supplied one.
+	if title == "" {
+		meta := FetchPageMeta(url)
+		title = meta.Title
+	}
+
+	if _, err := s.db.InsertLink(url, title, commentary, tags); err != nil {
+		slog.Error("admin: failed to insert link", "error", err)
+		s.renderAdmin(w, "admin_new.html", map[string]any{
+			"Error": "Failed to save: " + err.Error(),
+			"Form":  formVals,
+		})
+		return
+	}
+
+	http.Redirect(w, r, "/admin?flash=Link+created", http.StatusSeeOther)
+}
+
+// adminGetEdit shows the edit form for an existing link.
+func (s *Server) adminGetEdit(w http.ResponseWriter, r *http.Request) {
+	link := s.adminFetchLink(w, r)
+	if link == nil {
+		return
+	}
+	s.renderAdmin(w, "admin_edit.html", map[string]any{
+		"Link":  link,
+		"Error": "",
+	})
+}
+
+// adminPostEdit handles the edit form submission.
+func (s *Server) adminPostEdit(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	url := strings.TrimSpace(r.FormValue("url"))
+	title := strings.TrimSpace(r.FormValue("title"))
+	commentary := strings.TrimSpace(r.FormValue("commentary"))
+	tags := strings.TrimSpace(r.FormValue("tags"))
+	published := r.FormValue("published") == "on"
+
+	req := UpdateLinkRequest{
+		URL:        &url,
+		Title:      &title,
+		Commentary: &commentary,
+		Tags:       &tags,
+		Published:  &published,
+	}
+
+	link, err := s.db.UpdateLink(id, req)
+	if err != nil {
+		slog.Error("admin: failed to update link", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if link == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	http.Redirect(w, r, "/admin?flash=Link+saved", http.StatusSeeOther)
+}
+
+// adminPostDelete handles link deletion via a POST form.
+func (s *Server) adminPostDelete(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if _, err := s.db.DeleteLink(id); err != nil {
+		slog.Error("admin: failed to delete link", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/admin?flash=Link+deleted", http.StatusSeeOther)
+}
+
+// --- Helpers ---
+
+func (s *Server) adminFetchLink(w http.ResponseWriter, r *http.Request) *Link {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return nil
+	}
+	link, err := s.db.GetLink(id)
+	if err != nil {
+		slog.Error("admin: failed to get link", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return nil
+	}
+	if link == nil {
+		http.NotFound(w, r)
+		return nil
+	}
+	return link
+}
+
+func (s *Server) renderAdmin(w http.ResponseWriter, name string, data any) {
+	t, ok := s.templates[name]
+	if !ok {
+		slog.Error("admin template not found", "template", name)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := t.ExecuteTemplate(w, "admin_base", data); err != nil {
+		slog.Error("admin template render error", "template", name, "error", err)
+	}
+}

@@ -1,0 +1,302 @@
+/* LinkLog Admin UI */
+
+/* Header overrides */
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 60px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: calc(var(--gap) * 1.5);
+}
+
+.admin-header nav {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    font-size: 0.875rem;
+}
+
+.admin-header nav a {
+    color: var(--secondary);
+}
+.admin-header nav a:hover {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.admin-badge {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--secondary);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-left: 4px;
+}
+
+/* Logout button styled as a plain link */
+.logout-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-size: 0.875rem;
+    color: var(--secondary);
+    cursor: pointer;
+}
+.logout-btn:hover {
+    color: var(--primary);
+}
+
+/* Toolbar */
+.admin-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: calc(var(--gap) * 1.25);
+}
+.admin-toolbar h1 {
+    font-size: 1.1rem;
+}
+.admin-toolbar .count {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.875rem;
+    color: var(--secondary);
+    font-weight: normal;
+}
+
+/* Flash message */
+.flash {
+    font-size: 0.875rem;
+    color: var(--secondary);
+    margin-bottom: var(--gap);
+    padding: 0.6rem 0.9rem;
+    background: var(--code-bg);
+    border-left: 3px solid var(--border);
+    border-radius: 0 4px 4px 0;
+}
+
+/* Admin link entries */
+.admin-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: var(--gap) 0;
+    border-bottom: 1px solid var(--border);
+}
+.admin-entry:last-of-type {
+    border-bottom: none;
+}
+.admin-entry.unpublished {
+    opacity: 0.6;
+}
+
+.admin-entry-main {
+    flex: 1;
+    min-width: 0;
+}
+.admin-entry-main h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+    line-height: 1.4;
+}
+.admin-entry-main h2 a {
+    color: var(--primary);
+}
+.admin-entry-main h2 a:hover {
+    text-decoration: underline;
+}
+.admin-entry-main .commentary {
+    font-size: 0.9rem;
+    color: var(--secondary);
+    margin-bottom: 0.4rem;
+    /* Clamp long commentary in the list view */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.draft-badge {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--secondary);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-left: 4px;
+}
+
+.admin-entry-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+.admin-entry-actions form {
+    margin: 0;
+}
+
+/* Buttons */
+.btn-primary {
+    display: inline-block;
+    padding: 0.45rem 0.9rem;
+    background: var(--primary);
+    color: var(--theme);
+    border: none;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.btn-primary:hover {
+    opacity: 0.85;
+    text-decoration: none;
+}
+
+.btn-secondary {
+    display: inline-block;
+    padding: 0.45rem 0.9rem;
+    background: none;
+    color: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.btn-secondary:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+    text-decoration: none;
+}
+
+.btn-danger {
+    display: inline-block;
+    padding: 0.45rem 0.9rem;
+    background: none;
+    color: #c0392b;
+    border: 1px solid #e0b0ae;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+    white-space: nowrap;
+    width: 100%;
+}
+.btn-danger:hover {
+    background: #fdf2f2;
+    border-color: #c0392b;
+}
+
+/* Forms */
+.login-wrap,
+.admin-form-wrap {
+    max-width: 540px;
+}
+.login-wrap h1,
+.admin-form-wrap h1 {
+    font-size: 1.25rem;
+    margin-bottom: calc(var(--gap) * 1.25);
+}
+
+.admin-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.admin-form label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: -0.5rem;
+}
+
+.label-hint {
+    font-weight: normal;
+    color: var(--secondary);
+}
+
+.admin-form input[type="text"],
+.admin-form input[type="url"],
+.admin-form input[type="password"],
+.admin-form textarea {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--theme);
+    color: var(--primary);
+    font: inherit;
+    font-size: 0.95rem;
+}
+.admin-form input:focus,
+.admin-form textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.admin-form textarea {
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.checkbox-label input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+}
+
+.form-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.form-error {
+    font-size: 0.875rem;
+    color: #c0392b;
+    margin-bottom: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .admin-entry {
+        flex-direction: column;
+    }
+    .admin-entry-actions {
+        flex-direction: row;
+        width: 100%;
+    }
+    .admin-toolbar {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+}
