@@ -1,0 +1,15 @@
+{{ define "title" }}{{ .Link.Title }} — LinkLog{{ end }}
+
+{{ define "content" }}
+<article class="link-entry single">
+    <h2><a href="{{ .Link.URL }}" rel="noopener" target="_blank">{{ .Link.Title }}</a></h2>
+    {{ if .Link.Commentary }}<p class="commentary">{{ .Link.Commentary }}</p>{{ end }}
+    <div class="meta">
+        <time>{{ .Link.RelativeTime }}</time>
+        {{ if .Link.TagList }}
+        <span class="tags">{{ range $i, $t := .Link.TagList }}{{ if $i }}, {{ end }}<a href="/tag/{{ $t }}">{{ $t }}</a>{{ end }}</span>
+        {{ end }}
+    </div>
+</article>
+<p class="back"><a href="/">&larr; All links</a></p>
+{{ end }}

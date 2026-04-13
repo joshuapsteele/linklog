@@ -1,0 +1,236 @@
+/* LinkLog — links.joshuapsteele.com
+   Styled to match joshuapsteele.com (PaperMod theme) */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* Light mode variables — matches PaperMod exactly */
+:root {
+    --theme: rgb(255, 255, 255);
+    --primary: rgb(30, 30, 30);
+    --secondary: rgb(108, 108, 108);
+    --border: rgb(238, 238, 238);
+    --content: rgb(31, 31, 31);
+    --code-bg: rgb(245, 245, 245);
+    --max-width: 720px;
+    --gap: 24px;
+}
+
+/* Dark mode — matches PaperMod exactly */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --theme: rgb(29, 30, 32);
+        --primary: rgb(218, 218, 219);
+        --secondary: rgb(155, 156, 157);
+        --border: rgb(51, 51, 51);
+        --content: rgb(196, 196, 197);
+        --code-bg: rgb(55, 56, 62);
+    }
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--content);
+    background: var(--theme);
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 var(--gap);
+}
+
+/* Headings use Georgia, matching joshuapsteele.com */
+h1, h2, h3, h4, h5, h6 {
+    font-family: Georgia, 'Times New Roman', Times, serif;
+}
+
+a {
+    color: var(--primary);
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+/* Header */
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 60px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: calc(var(--gap) * 1.5);
+}
+
+.site-title {
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+.site-title:hover {
+    text-decoration: none;
+    opacity: 0.8;
+}
+
+header nav {
+    font-size: 0.875rem;
+    color: var(--secondary);
+}
+header nav a {
+    color: var(--secondary);
+}
+header nav a:hover {
+    color: var(--primary);
+    text-decoration: none;
+}
+header nav a + a {
+    margin-left: 1.25rem;
+}
+
+/* Link entries */
+
+.link-entry {
+    padding: var(--gap) 0;
+    border-bottom: 1px solid var(--border);
+}
+.link-entry:first-of-type {
+    padding-top: 0;
+}
+.link-entry:last-of-type {
+    border-bottom: none;
+}
+
+.link-entry h2 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-bottom: 0.4rem;
+}
+
+.link-entry h2 a {
+    color: var(--primary);
+}
+.link-entry h2 a:hover {
+    text-decoration: underline;
+}
+
+.link-entry .commentary {
+    color: var(--content);
+    font-size: 0.95rem;
+    line-height: 1.65;
+    margin-bottom: 0.5rem;
+}
+
+.meta {
+    font-size: 0.8rem;
+    color: var(--secondary);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.6rem;
+    align-items: baseline;
+}
+.meta a {
+    color: var(--secondary);
+}
+.meta a:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+/* Tag heading */
+
+.tag-heading {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--secondary);
+    margin-bottom: var(--gap);
+    padding-bottom: calc(var(--gap) / 2);
+    border-bottom: 1px solid var(--border);
+}
+
+/* Pagination */
+
+.pagination {
+    text-align: center;
+    padding: var(--gap) 0;
+    font-size: 0.9rem;
+    color: var(--secondary);
+}
+.pagination a {
+    color: var(--secondary);
+}
+.pagination a:hover {
+    color: var(--primary);
+}
+
+/* Back link */
+
+.back {
+    padding-top: var(--gap);
+    font-size: 0.9rem;
+}
+.back a {
+    color: var(--secondary);
+}
+.back a:hover {
+    color: var(--primary);
+}
+
+/* Single entry page */
+
+.single .commentary {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+/* Empty state */
+
+.empty {
+    color: var(--secondary);
+    font-style: italic;
+    padding: var(--gap) 0;
+}
+
+/* Footer */
+
+footer {
+    margin-top: var(--gap);
+    padding: calc(var(--gap) / 2) 0 var(--gap);
+    border-top: 1px solid var(--border);
+    font-size: 0.8rem;
+    color: var(--secondary);
+    text-align: center;
+}
+footer a {
+    color: var(--secondary);
+}
+footer a:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+footer p {
+    line-height: 2;
+}
+
+/* Responsive */
+
+@media (max-width: 480px) {
+    body {
+        font-size: 16px;
+        padding: 0 16px;
+    }
+    header {
+        height: auto;
+        padding: 16px 0;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}

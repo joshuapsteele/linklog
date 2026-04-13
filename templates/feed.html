@@ -1,0 +1,29 @@
+{{ define "title" }}LinkLog{{ end }}
+
+{{ define "content" }}
+{{ if not .Links }}
+<p class="empty">No links yet.</p>
+{{ end }}
+
+{{ range .Links }}
+<article class="link-entry">
+    <h2><a href="{{ .URL }}" rel="noopener" target="_blank">{{ .Title }}</a></h2>
+    {{ if .Commentary }}<p class="commentary">{{ .Commentary }}</p>{{ end }}
+    <div class="meta">
+        <time>{{ .RelativeTime }}</time>
+        {{ if .TagList }}
+        <span class="tags">{{ range $i, $t := .TagList }}{{ if $i }}, {{ end }}<a href="/tag/{{ $t }}">{{ $t }}</a>{{ end }}</span>
+        {{ end }}
+        <a href="/link/{{ .ID }}" class="permalink">permalink</a>
+    </div>
+</article>
+{{ end }}
+
+{{ if or .HasNewer .HasOlder }}
+<nav class="pagination">
+    {{ if .HasNewer }}<a href="{{ .PagePath }}?page={{ sub .Page 1 }}">&larr; Newer</a>{{ end }}
+    {{ if and .HasNewer .HasOlder }}<span class="sep"> · </span>{{ end }}
+    {{ if .HasOlder }}<a href="{{ .PagePath }}?page={{ add .Page 1 }}">Older &rarr;</a>{{ end }}
+</nav>
+{{ end }}
+{{ end }}
