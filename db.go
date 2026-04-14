@@ -64,7 +64,6 @@ func (db *DB) migrate() error {
 
 	CREATE INDEX IF NOT EXISTS idx_links_created_at ON links(created_at DESC);
 	CREATE INDEX IF NOT EXISTS idx_links_published ON links(published);
-	CREATE INDEX IF NOT EXISTS idx_links_pinned ON links(pinned);
 	`
 	if _, err := db.conn.Exec(schema); err != nil {
 		return err
@@ -75,6 +74,10 @@ func (db *DB) migrate() error {
 	db.conn.Exec(`ALTER TABLE links ADD COLUMN webmention_status TEXT NOT NULL DEFAULT 'pending'`)
 	db.conn.Exec(`ALTER TABLE links ADD COLUMN webmention_endpoint TEXT NOT NULL DEFAULT ''`)
 	db.conn.Exec(`ALTER TABLE links ADD COLUMN pinned BOOLEAN NOT NULL DEFAULT 0`)
+
+	if _, err := db.conn.Exec(`CREATE INDEX IF NOT EXISTS idx_links_pinned ON links(pinned)`); err != nil {
+		return err
+	}
 
 	return nil
 }
