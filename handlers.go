@@ -370,6 +370,8 @@ type jsonFeedItem struct {
 
 // feedJSON handles GET /feed.json.
 func (s *Server) feedJSON(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	pub := true
 	links, err := s.db.ListLinks(LinkFilter{Published: &pub, Limit: 50})
 	if err != nil {
