@@ -1,9 +1,13 @@
-{{ define "title" }}LinkLog{{ end }}
+{{ define "title" }}{{ if .Heading }}{{ .Heading }} — LinkLog{{ else }}LinkLog{{ end }}{{ end }}
 
 {{ define "content" }}
 <section class="h-feed">
+{{ if .Heading }}
+<h1 class="tag-heading">{{ .Heading }}</h1>
+{{ end }}
+
 {{ if not .Links }}
-<p class="empty">No links yet.</p>
+<p class="empty">{{ if .Heading }}No pinned links yet.{{ else }}No links yet.{{ end }}</p>
 {{ end }}
 
 {{ range .Links }}
@@ -11,7 +15,7 @@
     <div class="p-author h-card visually-hidden">
         <a class="u-url p-name" href="https://joshuapsteele.com">Joshua P. Steele</a>
     </div>
-    <h2 class="p-name"><a class="u-bookmark-of" href="{{ .URL }}" rel="noopener" target="_blank">{{ .Title }}</a></h2>
+    <h2 class="p-name"><a class="u-bookmark-of" href="{{ .URL }}" rel="noopener" target="_blank">{{ .Title }}</a>{{ if .Pinned }} <span class="pinned-badge">pinned</span>{{ end }}</h2>
     {{ if .Commentary }}<p class="commentary e-content">{{ .Commentary }}</p>{{ end }}
     <div class="meta">
         <time class="dt-published" datetime="{{ .CreatedAt.Format "2006-01-02T15:04:05Z07:00" }}">{{ .RelativeTime }}</time>

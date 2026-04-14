@@ -24,6 +24,11 @@
             Published
         </label>
 
+        <label class="checkbox-label">
+            <input type="checkbox" name="pinned" {{ if .Link.Pinned }}checked{{ end }}>
+            Pinned
+        </label>
+
         <div class="webmention-status-row">
             <span class="label-hint">Webmention:
                 <span class="wm-status wm-{{ .Link.WebmentionStatus }}">{{ .Link.WebmentionStatus }}</span>

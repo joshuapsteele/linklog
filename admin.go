@@ -71,7 +71,8 @@ func (s *Server) adminPostLogout(w http.ResponseWriter, r *http.Request) {
 // adminIndex lists all links with edit and delete controls.
 func (s *Server) adminIndex(w http.ResponseWriter, r *http.Request) {
 	// List all links regardless of published status, no limit for personal use.
-	links, err := s.db.ListLinks(LinkFilter{Limit: 500})
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	links, err := s.db.ListLinks(LinkFilter{Query: q, Limit: 500})
 	if err != nil {
 		slog.Error("admin: failed to list links", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -81,6 +82,7 @@ func (s *Server) adminIndex(w http.ResponseWriter, r *http.Request) {
 	s.renderAdmin(w, "admin_index.html", map[string]any{
 		"Links": links,
 		"Flash": flash,
+		"Query": q,
 	})
 }
 
@@ -98,9 +100,13 @@ func (s *Server) adminPostNew(w http.ResponseWriter, r *http.Request) {
 	title := strings.TrimSpace(r.FormValue("title"))
 	commentary := strings.TrimSpace(r.FormValue("commentary"))
 	tags := strings.TrimSpace(r.FormValue("tags"))
+	pinned := r.FormValue("pinned") == "on"
 
 	formVals := map[string]string{
 		"url": url, "title": title, "commentary": commentary, "tags": tags,
+	}
+	if pinned {
+		formVals["pinned"] = "on"
 	}
 
 	if url == "" || (!strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://")) {
@@ -117,7 +123,7 @@ func (s *Server) adminPostNew(w http.ResponseWriter, r *http.Request) {
 		title = meta.Title
 	}
 
-	link, err := s.db.InsertLink(url, title, commentary, tags)
+	link, err := s.db.InsertLink(url, title, commentary, tags, pinned)
 	if err != nil {
 		slog.Error("admin: failed to insert link", "error", err)
 		s.renderAdmin(w, "admin_new.html", map[string]any{
@@ -157,6 +163,7 @@ func (s *Server) adminPostEdit(w http.ResponseWriter, r *http.Request) {
 	commentary := strings.TrimSpace(r.FormValue("commentary"))
 	tags := strings.TrimSpace(r.FormValue("tags"))
 	published := r.FormValue("published") == "on"
+	pinned := r.FormValue("pinned") == "on"
 
 	req := UpdateLinkRequest{
 		URL:        &url,
@@ -164,6 +171,7 @@ func (s *Server) adminPostEdit(w http.ResponseWriter, r *http.Request) {
 		Commentary: &commentary,
 		Tags:       &tags,
 		Published:  &published,
+		Pinned:     &pinned,
 	}
 
 	link, err := s.db.UpdateLink(id, req)

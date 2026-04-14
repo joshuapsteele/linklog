@@ -48,7 +48,7 @@ func main() {
 	}
 
 	// Public page templates — each parsed with the shared base.
-	publicPages := []string{"feed.html", "single.html", "tag.html", "about.html"}
+	publicPages := []string{"feed.html", "single.html", "tag.html", "search.html", "about.html"}
 	// Admin page templates — each parsed with the admin base.
 	adminPages := []string{"admin_login.html", "admin_index.html", "admin_edit.html", "admin_new.html"}
 
@@ -95,6 +95,8 @@ func main() {
 
 	// Public pages.
 	r.Get("/", srv.pageFeed)
+	r.Get("/pinned", srv.pagePinned)
+	r.Get("/search", srv.pageSearch)
 	r.Get("/link/{id}", srv.pageSingle)
 	r.Get("/tag/{tag}", srv.pageTag)
 	r.Get("/about", srv.pageAbout)

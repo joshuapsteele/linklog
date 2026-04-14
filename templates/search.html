@@ -1,0 +1,46 @@
+{{ define "title" }}Search — LinkLog{{ end }}
+
+{{ define "content" }}
+<section class="h-feed">
+<h1 class="tag-heading">Search links</h1>
+
+<form action="/search" method="GET" class="search-form">
+    <label for="q" class="visually-hidden">Search saved links</label>
+    <input type="search" id="q" name="q" value="{{ .Query }}" placeholder="Search titles, URLs, notes, and tags" autofocus>
+    <button type="submit">Search</button>
+</form>
+
+{{ if .Query }}
+    {{ if not .Links }}
+    <p class="empty">No links found for "{{ .Query }}".</p>
+    {{ end }}
+
+    {{ range .Links }}
+    <article class="link-entry h-entry">
+        <div class="p-author h-card visually-hidden">
+            <a class="u-url p-name" href="https://joshuapsteele.com">Joshua P. Steele</a>
+        </div>
+        <h2 class="p-name"><a class="u-bookmark-of" href="{{ .URL }}" rel="noopener" target="_blank">{{ .Title }}</a>{{ if .Pinned }} <span class="pinned-badge">pinned</span>{{ end }}</h2>
+        {{ if .Commentary }}<p class="commentary e-content">{{ .Commentary }}</p>{{ end }}
+        <div class="meta">
+            <time class="dt-published" datetime="{{ .CreatedAt.Format "2006-01-02T15:04:05Z07:00" }}">{{ .RelativeTime }}</time>
+            {{ if .TagList }}
+            <span class="tags">{{ range $i, $t := .TagList }}{{ if $i }}, {{ end }}<a class="p-category" rel="tag" href="/tag/{{ $t }}">{{ $t }}</a>{{ end }}</span>
+            {{ end }}
+            <a href="{{ $.BaseURL }}/link/{{ .ID }}" class="permalink u-url">permalink</a>
+        </div>
+    </article>
+    {{ end }}
+
+    {{ if or .HasNewer .HasOlder }}
+    <nav class="pagination">
+        {{ if .HasNewer }}<a href="/search?q={{ .Query | urlquery }}&page={{ sub .Page 1 }}">&larr; Newer</a>{{ end }}
+        {{ if and .HasNewer .HasOlder }}<span class="sep"> · </span>{{ end }}
+        {{ if .HasOlder }}<a href="/search?q={{ .Query | urlquery }}&page={{ add .Page 1 }}">Older &rarr;</a>{{ end }}
+    </nav>
+    {{ end }}
+{{ else }}
+<p class="empty">Search your saved links by title, URL, commentary, or tag.</p>
+{{ end }}
+</section>
+{{ end }}

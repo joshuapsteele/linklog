@@ -45,7 +45,7 @@ func (s *Server) apiCreateLink(w http.ResponseWriter, r *http.Request) {
 	// Fetch page metadata in the background of this request.
 	meta := FetchPageMeta(req.URL)
 
-	link, err := s.db.InsertLink(req.URL, meta.Title, strings.TrimSpace(req.Commentary), strings.TrimSpace(req.Tags))
+	link, err := s.db.InsertLink(req.URL, meta.Title, strings.TrimSpace(req.Commentary), strings.TrimSpace(req.Tags), req.Pinned)
 	if err != nil {
 		slog.Error("failed to insert link", "error", err)
 		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
@@ -114,13 +114,18 @@ func (s *Server) apiUpdateLink(w http.ResponseWriter, r *http.Request) {
 // apiListLinks handles GET /api/links.
 func (s *Server) apiListLinks(w http.ResponseWriter, r *http.Request) {
 	f := LinkFilter{
-		Tag:   r.URL.Query().Get("tag"),
+		Tag:   strings.TrimSpace(r.URL.Query().Get("tag")),
+		Query: strings.TrimSpace(r.URL.Query().Get("q")),
 		Limit: 100,
 	}
 
 	if pub := r.URL.Query().Get("published"); pub != "" {
 		b := pub != "false"
 		f.Published = &b
+	}
+	if pinned := r.URL.Query().Get("pinned"); pinned != "" {
+		b := pinned != "false"
+		f.Pinned = &b
 	}
 	if lim := r.URL.Query().Get("limit"); lim != "" {
 		if n, err := strconv.Atoi(lim); err == nil && n > 0 {
@@ -145,12 +150,14 @@ func (s *Server) apiListLinks(w http.ResponseWriter, r *http.Request) {
 type feedData struct {
 	Links      []Link
 	Tag        string
+	Heading    string
 	Page       int
 	TotalPages int
 	HasNewer   bool
 	HasOlder   bool
 	BaseURL    string
 	PagePath   string // e.g. "/" or "/tag/go"
+	Query      string
 }
 
 // pageFeed handles GET / (main feed).
@@ -186,6 +193,93 @@ func (s *Server) pageFeed(w http.ResponseWriter, r *http.Request) {
 		HasOlder:   page < totalPages,
 		BaseURL:    s.baseURL,
 		PagePath:   "/",
+	}
+
+	s.render(w, "feed.html", data)
+}
+
+// pageSearch handles GET /search.
+func (s *Server) pageSearch(w http.ResponseWriter, r *http.Request) {
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	page := pageNum(r)
+	pub := true
+
+	data := feedData{
+		Heading:  "Search links",
+		Page:     page,
+		BaseURL:  s.baseURL,
+		PagePath: "/search",
+		Query:    q,
+	}
+
+	if q == "" {
+		s.render(w, "search.html", data)
+		return
+	}
+
+	f := LinkFilter{Query: q, Published: &pub, Limit: perPage, Offset: (page - 1) * perPage}
+	links, err := s.db.ListLinks(f)
+	if err != nil {
+		slog.Error("failed to search links", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	total, err := s.db.CountLinks(LinkFilter{Query: q, Published: &pub})
+	if err != nil {
+		slog.Error("failed to count link search results", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	totalPages := int(math.Ceil(float64(total) / float64(perPage)))
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
+	data.Links = links
+	data.TotalPages = totalPages
+	data.HasNewer = page > 1
+	data.HasOlder = page < totalPages
+
+	s.render(w, "search.html", data)
+}
+
+// pagePinned handles GET /pinned.
+func (s *Server) pagePinned(w http.ResponseWriter, r *http.Request) {
+	page := pageNum(r)
+	pub := true
+	pinned := true
+	f := LinkFilter{Published: &pub, Pinned: &pinned, Limit: perPage, Offset: (page - 1) * perPage}
+
+	links, err := s.db.ListLinks(f)
+	if err != nil {
+		slog.Error("failed to list pinned links", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	total, err := s.db.CountLinks(LinkFilter{Published: &pub, Pinned: &pinned})
+	if err != nil {
+		slog.Error("failed to count pinned links", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	totalPages := int(math.Ceil(float64(total) / float64(perPage)))
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
+	data := feedData{
+		Links:      links,
+		Heading:    "Pinned links",
+		Page:       page,
+		TotalPages: totalPages,
+		HasNewer:   page > 1,
+		HasOlder:   page < totalPages,
+		BaseURL:    s.baseURL,
+		PagePath:   "/pinned",
 	}
 
 	s.render(w, "feed.html", data)
@@ -272,10 +366,10 @@ func (s *Server) pageSingle(w http.ResponseWriter, r *http.Request) {
 // --- RSS Feed ---
 
 type rssChannel struct {
-	XMLName       xml.Name  `xml:"rss"`
-	Version       string    `xml:"version,attr"`
-	AtomNamespace string    `xml:"xmlns:atom,attr"`
-	Channel       rssFeed   `xml:"channel"`
+	XMLName       xml.Name `xml:"rss"`
+	Version       string   `xml:"version,attr"`
+	AtomNamespace string   `xml:"xmlns:atom,attr"`
+	Channel       rssFeed  `xml:"channel"`
 }
 
 type rssFeed struct {

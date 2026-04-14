@@ -128,13 +128,14 @@ All API routes require an `Authorization: Bearer <token>` header matching `LINKL
 {
   "url": "https://example.com/article",
   "commentary": "Worth reading.",
-  "tags": "webdev,go"
+  "tags": "webdev,go",
+  "pinned": false
 }
 ```
 
-**GET /api/links** — List all links as JSON. Optional query parameters: `?tag=go`, `?published=false`, `?limit=50`.
+**GET /api/links** — List all links as JSON. Optional query parameters: `?q=sqlite`, `?tag=go`, `?published=false`, `?pinned=true`, `?limit=50`.
 
-**PATCH /api/links/{id}** — Partial update. Send only the fields you want to change.
+**PATCH /api/links/{id}** — Partial update. Send only the fields you want to change, including `pinned` for promoting a link to the pinned page.
 
 **DELETE /api/links/{id}** — Delete a link. Returns 204 on success, 404 if not found.
 
@@ -143,6 +144,8 @@ All API routes require an `Authorization: Bearer <token>` header matching `LINKL
 These are unauthenticated HTML pages:
 
 - **GET /** — Main feed, 20 links per page, reverse chronological order
+- **GET /pinned** — Pinned/recommended links
+- **GET /search?q=term** — Search published links by title, URL, commentary, or tag
 - **GET /link/{id}** — Permalink for a single link entry
 - **GET /tag/{tag}** — Feed filtered to a specific tag
 - **GET /about** — About page
@@ -156,7 +159,7 @@ The admin UI lives at `/admin` and requires a password (set via `LINKLOG_ADMIN_P
 - **GET /admin** — Dashboard listing all links with edit, delete, and webmention controls
 - **GET /admin/login** — Login form
 - **GET /admin/links/new** — Form to create a new link (with the same auto-fetch behavior as the API)
-- **GET /admin/links/{id}/edit** — Form to edit a link's title, URL, commentary, tags, and published status
+- **GET /admin/links/{id}/edit** — Form to edit a link's title, URL, commentary, tags, pinned status, and published status
 - **POST /admin/links/{id}/delete** — Delete a link (with a confirmation prompt in the browser)
 - **POST /admin/links/{id}/webmention** — Manually retry sending a webmention for a link
 

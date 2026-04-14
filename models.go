@@ -9,16 +9,17 @@ import (
 
 // Link represents a single saved link entry.
 type Link struct {
-	ID                int64     `json:"id"`
-	URL               string    `json:"url"`
-	Title             string    `json:"title"`
-	Commentary        string    `json:"commentary"`
-	Tags              string    `json:"tags"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
-	Published         bool      `json:"published"`
-	WebmentionStatus  string    `json:"webmention_status"`            // pending, sent, failed, unsupported
-	WebmentionEndpoint string   `json:"webmention_endpoint,omitempty"` // discovered endpoint URL
+	ID                 int64     `json:"id"`
+	URL                string    `json:"url"`
+	Title              string    `json:"title"`
+	Commentary         string    `json:"commentary"`
+	Tags               string    `json:"tags"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+	Published          bool      `json:"published"`
+	Pinned             bool      `json:"pinned"`
+	WebmentionStatus   string    `json:"webmention_status"`             // pending, sent, failed, unsupported
+	WebmentionEndpoint string    `json:"webmention_endpoint,omitempty"` // discovered endpoint URL
 }
 
 // TagList returns the tags split into a slice, filtering out empty strings.
@@ -72,6 +73,7 @@ type CreateLinkRequest struct {
 	URL        string `json:"url"`
 	Commentary string `json:"commentary"`
 	Tags       string `json:"tags"`
+	Pinned     bool   `json:"pinned"`
 }
 
 // UpdateLinkRequest is the JSON body for PATCH /api/links/{id}.
@@ -82,4 +84,5 @@ type UpdateLinkRequest struct {
 	Commentary *string `json:"commentary"`
 	Tags       *string `json:"tags"`
 	Published  *bool   `json:"published"`
+	Pinned     *bool   `json:"pinned"`
 }

@@ -70,6 +70,24 @@
     font-weight: normal;
 }
 
+.admin-search-form {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: var(--gap);
+}
+
+.admin-search-form input[type="search"] {
+    flex: 1;
+    min-width: 0;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--theme);
+    color: var(--primary);
+    font: inherit;
+    font-size: 0.95rem;
+}
+
 /* Flash message */
 .flash {
     font-size: 0.875rem;
@@ -124,7 +142,8 @@
     overflow: hidden;
 }
 
-.draft-badge {
+.draft-badge,
+.pinned-badge {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 0.65rem;
     font-weight: 600;
@@ -136,6 +155,10 @@
     border-radius: 3px;
     vertical-align: middle;
     margin-left: 4px;
+}
+
+.pinned-badge {
+    color: var(--primary);
 }
 
 .admin-entry-actions {

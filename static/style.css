@@ -156,6 +156,19 @@ header nav a + a {
     text-decoration: underline;
 }
 
+.pinned-badge {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--secondary);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    vertical-align: middle;
+}
+
 /* Tag heading */
 
 .tag-heading {
@@ -180,6 +193,42 @@ header nav a + a {
 }
 .pagination a:hover {
     color: var(--primary);
+}
+
+/* Search */
+
+.search-form {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: var(--gap);
+}
+
+.search-form input[type="search"] {
+    flex: 1;
+    min-width: 0;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--theme);
+    color: var(--primary);
+    font: inherit;
+    font-size: 0.95rem;
+}
+
+.search-form button {
+    padding: 0.55rem 0.9rem;
+    border: 1px solid var(--primary);
+    border-radius: 4px;
+    background: var(--primary);
+    color: var(--theme);
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.search-form button:hover {
+    opacity: 0.85;
 }
 
 /* Back link */

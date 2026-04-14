@@ -58,11 +58,13 @@ func (db *DB) migrate() error {
 		tags TEXT NOT NULL DEFAULT '',
 		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-		published BOOLEAN NOT NULL DEFAULT 1
+		published BOOLEAN NOT NULL DEFAULT 1,
+		pinned BOOLEAN NOT NULL DEFAULT 0
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_links_created_at ON links(created_at DESC);
 	CREATE INDEX IF NOT EXISTS idx_links_published ON links(published);
+	CREATE INDEX IF NOT EXISTS idx_links_pinned ON links(pinned);
 	`
 	if _, err := db.conn.Exec(schema); err != nil {
 		return err
@@ -72,17 +74,18 @@ func (db *DB) migrate() error {
 	// so we attempt each and silently ignore "duplicate column" errors.
 	db.conn.Exec(`ALTER TABLE links ADD COLUMN webmention_status TEXT NOT NULL DEFAULT 'pending'`)
 	db.conn.Exec(`ALTER TABLE links ADD COLUMN webmention_endpoint TEXT NOT NULL DEFAULT ''`)
+	db.conn.Exec(`ALTER TABLE links ADD COLUMN pinned BOOLEAN NOT NULL DEFAULT 0`)
 
 	return nil
 }
 
 // InsertLink inserts a new link and returns it with its assigned ID and timestamps.
-func (db *DB) InsertLink(url, title, commentary, tags string) (*Link, error) {
+func (db *DB) InsertLink(url, title, commentary, tags string, pinned bool) (*Link, error) {
 	now := time.Now().UTC()
 	result, err := db.conn.Exec(
-		`INSERT INTO links (url, title, commentary, tags, created_at, updated_at, published, webmention_status, webmention_endpoint)
-		 VALUES (?, ?, ?, ?, ?, ?, 1, 'pending', '')`,
-		url, title, commentary, tags, now, now,
+		`INSERT INTO links (url, title, commentary, tags, created_at, updated_at, published, pinned, webmention_status, webmention_endpoint)
+		 VALUES (?, ?, ?, ?, ?, ?, 1, ?, 'pending', '')`,
+		url, title, commentary, tags, now, now, pinned,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("insert link: %w", err)
@@ -102,6 +105,7 @@ func (db *DB) InsertLink(url, title, commentary, tags string) (*Link, error) {
 		CreatedAt:        now,
 		UpdatedAt:        now,
 		Published:        true,
+		Pinned:           pinned,
 		WebmentionStatus: "pending",
 	}, nil
 }
@@ -118,7 +122,7 @@ func (db *DB) UpdateWebmentionStatus(id int64, status, endpoint string) error {
 // GetLink returns a single link by ID, or nil if not found.
 func (db *DB) GetLink(id int64) (*Link, error) {
 	row := db.conn.QueryRow(
-		`SELECT id, url, title, commentary, tags, created_at, updated_at, published, webmention_status, webmention_endpoint
+		`SELECT id, url, title, commentary, tags, created_at, updated_at, published, pinned, webmention_status, webmention_endpoint
 		 FROM links WHERE id = ?`, id,
 	)
 	return scanLink(row)
@@ -162,6 +166,10 @@ func (db *DB) UpdateLink(id int64, req UpdateLinkRequest) (*Link, error) {
 		sets = append(sets, "published = ?")
 		args = append(args, *req.Published)
 	}
+	if req.Pinned != nil {
+		sets = append(sets, "pinned = ?")
+		args = append(args, *req.Pinned)
+	}
 
 	if len(sets) == 0 {
 		return db.GetLink(id)
@@ -191,7 +199,9 @@ func (db *DB) UpdateLink(id int64, req UpdateLinkRequest) (*Link, error) {
 // LinkFilter holds optional query parameters for listing links.
 type LinkFilter struct {
 	Tag       string
+	Query     string
 	Published *bool
+	Pinned    *bool
 	Limit     int
 	Offset    int
 }
@@ -206,12 +216,21 @@ func (db *DB) ListLinks(f LinkFilter) ([]Link, error) {
 		where = append(where, "(tags = ? OR tags LIKE ? OR tags LIKE ? OR tags LIKE ?)")
 		args = append(args, f.Tag, f.Tag+",%", "%,"+f.Tag, "%,"+f.Tag+",%")
 	}
+	if f.Query != "" {
+		where = append(where, "(title LIKE ? OR url LIKE ? OR commentary LIKE ? OR tags LIKE ?)")
+		like := "%" + f.Query + "%"
+		args = append(args, like, like, like, like)
+	}
 	if f.Published != nil {
 		where = append(where, "published = ?")
 		args = append(args, *f.Published)
 	}
+	if f.Pinned != nil {
+		where = append(where, "pinned = ?")
+		args = append(args, *f.Pinned)
+	}
 
-	query := "SELECT id, url, title, commentary, tags, created_at, updated_at, published, webmention_status, webmention_endpoint FROM links"
+	query := "SELECT id, url, title, commentary, tags, created_at, updated_at, published, pinned, webmention_status, webmention_endpoint FROM links"
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
@@ -250,9 +269,18 @@ func (db *DB) CountLinks(f LinkFilter) (int, error) {
 		where = append(where, "(tags = ? OR tags LIKE ? OR tags LIKE ? OR tags LIKE ?)")
 		args = append(args, f.Tag, f.Tag+",%", "%,"+f.Tag, "%,"+f.Tag+",%")
 	}
+	if f.Query != "" {
+		where = append(where, "(title LIKE ? OR url LIKE ? OR commentary LIKE ? OR tags LIKE ?)")
+		like := "%" + f.Query + "%"
+		args = append(args, like, like, like, like)
+	}
 	if f.Published != nil {
 		where = append(where, "published = ?")
 		args = append(args, *f.Published)
+	}
+	if f.Pinned != nil {
+		where = append(where, "pinned = ?")
+		args = append(args, *f.Pinned)
 	}
 
 	query := "SELECT COUNT(*) FROM links"
@@ -275,7 +303,7 @@ func scanLink(s scanner) (*Link, error) {
 	var createdAt, updatedAt string
 	err := s.Scan(
 		&l.ID, &l.URL, &l.Title, &l.Commentary, &l.Tags,
-		&createdAt, &updatedAt, &l.Published,
+		&createdAt, &updatedAt, &l.Published, &l.Pinned,
 		&l.WebmentionStatus, &l.WebmentionEndpoint,
 	)
 	if err == sql.ErrNoRows {
