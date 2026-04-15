@@ -140,6 +140,13 @@ header nav a + a {
     margin-bottom: 0.5rem;
 }
 
+.link-entry .description {
+    color: var(--secondary);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 0.5rem;
+}
+
 .meta {
     font-size: 0.8rem;
     color: var(--secondary);

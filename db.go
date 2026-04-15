@@ -56,6 +56,10 @@ func (db *DB) migrate() error {
 		title TEXT NOT NULL DEFAULT '',
 		commentary TEXT NOT NULL DEFAULT '',
 		tags TEXT NOT NULL DEFAULT '',
+		description TEXT NOT NULL DEFAULT '',
+		site_name TEXT NOT NULL DEFAULT '',
+		image_url TEXT NOT NULL DEFAULT '',
+		canonical_url TEXT NOT NULL DEFAULT '',
 		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		published BOOLEAN NOT NULL DEFAULT 1,
@@ -74,6 +78,10 @@ func (db *DB) migrate() error {
 	db.conn.Exec(`ALTER TABLE links ADD COLUMN webmention_status TEXT NOT NULL DEFAULT 'pending'`)
 	db.conn.Exec(`ALTER TABLE links ADD COLUMN webmention_endpoint TEXT NOT NULL DEFAULT ''`)
 	db.conn.Exec(`ALTER TABLE links ADD COLUMN pinned BOOLEAN NOT NULL DEFAULT 0`)
+	db.conn.Exec(`ALTER TABLE links ADD COLUMN description TEXT NOT NULL DEFAULT ''`)
+	db.conn.Exec(`ALTER TABLE links ADD COLUMN site_name TEXT NOT NULL DEFAULT ''`)
+	db.conn.Exec(`ALTER TABLE links ADD COLUMN image_url TEXT NOT NULL DEFAULT ''`)
+	db.conn.Exec(`ALTER TABLE links ADD COLUMN canonical_url TEXT NOT NULL DEFAULT ''`)
 
 	if _, err := db.conn.Exec(`CREATE INDEX IF NOT EXISTS idx_links_pinned ON links(pinned)`); err != nil {
 		return err
@@ -83,12 +91,12 @@ func (db *DB) migrate() error {
 }
 
 // InsertLink inserts a new link and returns it with its assigned ID and timestamps.
-func (db *DB) InsertLink(url, title, commentary, tags string, pinned bool) (*Link, error) {
+func (db *DB) InsertLink(url, commentary, tags string, pinned bool, meta PageMeta) (*Link, error) {
 	now := time.Now().UTC()
 	result, err := db.conn.Exec(
-		`INSERT INTO links (url, title, commentary, tags, created_at, updated_at, published, pinned, webmention_status, webmention_endpoint)
-		 VALUES (?, ?, ?, ?, ?, ?, 1, ?, 'pending', '')`,
-		url, title, commentary, tags, now, now, pinned,
+		`INSERT INTO links (url, title, commentary, tags, description, site_name, image_url, canonical_url, created_at, updated_at, published, pinned, webmention_status, webmention_endpoint)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 'pending', '')`,
+		url, meta.Title, commentary, tags, meta.Description, meta.SiteName, meta.ImageURL, meta.CanonicalURL, now, now, pinned,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("insert link: %w", err)
@@ -102,9 +110,13 @@ func (db *DB) InsertLink(url, title, commentary, tags string, pinned bool) (*Lin
 	return &Link{
 		ID:               id,
 		URL:              url,
-		Title:            title,
+		Title:            meta.Title,
 		Commentary:       commentary,
 		Tags:             tags,
+		Description:      meta.Description,
+		SiteName:         meta.SiteName,
+		ImageURL:         meta.ImageURL,
+		CanonicalURL:     meta.CanonicalURL,
 		CreatedAt:        now,
 		UpdatedAt:        now,
 		Published:        true,
@@ -125,7 +137,7 @@ func (db *DB) UpdateWebmentionStatus(id int64, status, endpoint string) error {
 // GetLink returns a single link by ID, or nil if not found.
 func (db *DB) GetLink(id int64) (*Link, error) {
 	row := db.conn.QueryRow(
-		`SELECT id, url, title, commentary, tags, created_at, updated_at, published, pinned, webmention_status, webmention_endpoint
+		`SELECT id, url, title, commentary, tags, description, site_name, image_url, canonical_url, created_at, updated_at, published, pinned, webmention_status, webmention_endpoint
 		 FROM links WHERE id = ?`, id,
 	)
 	return scanLink(row)
@@ -164,6 +176,22 @@ func (db *DB) UpdateLink(id int64, req UpdateLinkRequest) (*Link, error) {
 	if req.Tags != nil {
 		sets = append(sets, "tags = ?")
 		args = append(args, *req.Tags)
+	}
+	if req.Description != nil {
+		sets = append(sets, "description = ?")
+		args = append(args, *req.Description)
+	}
+	if req.SiteName != nil {
+		sets = append(sets, "site_name = ?")
+		args = append(args, *req.SiteName)
+	}
+	if req.ImageURL != nil {
+		sets = append(sets, "image_url = ?")
+		args = append(args, *req.ImageURL)
+	}
+	if req.CanonicalURL != nil {
+		sets = append(sets, "canonical_url = ?")
+		args = append(args, *req.CanonicalURL)
 	}
 	if req.Published != nil {
 		sets = append(sets, "published = ?")
@@ -220,9 +248,9 @@ func (db *DB) ListLinks(f LinkFilter) ([]Link, error) {
 		args = append(args, f.Tag, f.Tag+",%", "%,"+f.Tag, "%,"+f.Tag+",%")
 	}
 	if f.Query != "" {
-		where = append(where, "(title LIKE ? OR url LIKE ? OR commentary LIKE ? OR tags LIKE ?)")
+		where = append(where, "(title LIKE ? OR url LIKE ? OR commentary LIKE ? OR tags LIKE ? OR description LIKE ? OR site_name LIKE ? OR canonical_url LIKE ?)")
 		like := "%" + f.Query + "%"
-		args = append(args, like, like, like, like)
+		args = append(args, like, like, like, like, like, like, like)
 	}
 	if f.Published != nil {
 		where = append(where, "published = ?")
@@ -233,7 +261,7 @@ func (db *DB) ListLinks(f LinkFilter) ([]Link, error) {
 		args = append(args, *f.Pinned)
 	}
 
-	query := "SELECT id, url, title, commentary, tags, created_at, updated_at, published, pinned, webmention_status, webmention_endpoint FROM links"
+	query := "SELECT id, url, title, commentary, tags, description, site_name, image_url, canonical_url, created_at, updated_at, published, pinned, webmention_status, webmention_endpoint FROM links"
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
@@ -273,9 +301,9 @@ func (db *DB) CountLinks(f LinkFilter) (int, error) {
 		args = append(args, f.Tag, f.Tag+",%", "%,"+f.Tag, "%,"+f.Tag+",%")
 	}
 	if f.Query != "" {
-		where = append(where, "(title LIKE ? OR url LIKE ? OR commentary LIKE ? OR tags LIKE ?)")
+		where = append(where, "(title LIKE ? OR url LIKE ? OR commentary LIKE ? OR tags LIKE ? OR description LIKE ? OR site_name LIKE ? OR canonical_url LIKE ?)")
 		like := "%" + f.Query + "%"
-		args = append(args, like, like, like, like)
+		args = append(args, like, like, like, like, like, like, like)
 	}
 	if f.Published != nil {
 		where = append(where, "published = ?")
@@ -306,6 +334,7 @@ func scanLink(s scanner) (*Link, error) {
 	var createdAt, updatedAt string
 	err := s.Scan(
 		&l.ID, &l.URL, &l.Title, &l.Commentary, &l.Tags,
+		&l.Description, &l.SiteName, &l.ImageURL, &l.CanonicalURL,
 		&createdAt, &updatedAt, &l.Published, &l.Pinned,
 		&l.WebmentionStatus, &l.WebmentionEndpoint,
 	)

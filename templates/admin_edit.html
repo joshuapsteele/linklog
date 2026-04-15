@@ -19,6 +19,22 @@
         <label for="tags">Tags <span class="label-hint">(comma-separated)</span></label>
         <input type="text" id="tags" name="tags" value="{{ .Link.Tags }}" placeholder="go,indieweb,tools">
 
+        <fieldset class="metadata-fields">
+            <legend>Fetched metadata</legend>
+
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="3">{{ .Link.Description }}</textarea>
+
+            <label for="site_name">Site name</label>
+            <input type="text" id="site_name" name="site_name" value="{{ .Link.SiteName }}">
+
+            <label for="image_url">Image URL</label>
+            <input type="url" id="image_url" name="image_url" value="{{ .Link.ImageURL }}">
+
+            <label for="canonical_url">Canonical URL</label>
+            <input type="url" id="canonical_url" name="canonical_url" value="{{ .Link.CanonicalURL }}">
+        </fieldset>
+
         <label class="checkbox-label">
             <input type="checkbox" name="published" {{ if .Link.Published }}checked{{ end }}>
             Published

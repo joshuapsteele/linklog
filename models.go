@@ -14,6 +14,10 @@ type Link struct {
 	Title              string    `json:"title"`
 	Commentary         string    `json:"commentary"`
 	Tags               string    `json:"tags"`
+	Description        string    `json:"description"`
+	SiteName           string    `json:"site_name"`
+	ImageURL           string    `json:"image_url"`
+	CanonicalURL       string    `json:"canonical_url"`
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
 	Published          bool      `json:"published"`
@@ -79,10 +83,14 @@ type CreateLinkRequest struct {
 // UpdateLinkRequest is the JSON body for PATCH /api/links/{id}.
 // All fields are pointers so we can distinguish "not provided" from "set to zero value".
 type UpdateLinkRequest struct {
-	URL        *string `json:"url"`
-	Title      *string `json:"title"`
-	Commentary *string `json:"commentary"`
-	Tags       *string `json:"tags"`
-	Published  *bool   `json:"published"`
-	Pinned     *bool   `json:"pinned"`
+	URL          *string `json:"url"`
+	Title        *string `json:"title"`
+	Commentary   *string `json:"commentary"`
+	Tags         *string `json:"tags"`
+	Description  *string `json:"description"`
+	SiteName     *string `json:"site_name"`
+	ImageURL     *string `json:"image_url"`
+	CanonicalURL *string `json:"canonical_url"`
+	Published    *bool   `json:"published"`
+	Pinned       *bool   `json:"pinned"`
 }

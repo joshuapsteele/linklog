@@ -7,8 +7,10 @@
     </div>
     <h2 class="p-name"><a class="u-bookmark-of" href="{{ .Link.URL }}" rel="noopener" target="_blank">{{ .Link.Title }}</a>{{ if .Link.Pinned }} <span class="pinned-badge">pinned</span>{{ end }}</h2>
     {{ if .Link.Commentary }}<p class="commentary e-content">{{ .Link.Commentary }}</p>{{ end }}
+    {{ if and .Link.Description (not .Link.Commentary) }}<p class="description p-summary">{{ .Link.Description }}</p>{{ end }}
     <div class="meta">
         <time class="dt-published" datetime="{{ .Link.CreatedAt.Format "2006-01-02T15:04:05Z07:00" }}">{{ .Link.RelativeTime }}</time>
+        {{ if .Link.SiteName }}<span class="site-name">{{ .Link.SiteName }}</span>{{ end }}
         {{ if .Link.TagList }}
         <span class="tags">{{ range $i, $t := .Link.TagList }}{{ if $i }}, {{ end }}<a class="p-category" rel="tag" href="/tag/{{ $t }}">{{ $t }}</a>{{ end }}</span>
         {{ end }}

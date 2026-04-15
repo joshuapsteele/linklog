@@ -47,7 +47,7 @@ func (s *Server) apiCreateLink(w http.ResponseWriter, r *http.Request) {
 	// Fetch page metadata in the background of this request.
 	meta := FetchPageMeta(req.URL)
 
-	link, err := s.db.InsertLink(req.URL, meta.Title, strings.TrimSpace(req.Commentary), strings.TrimSpace(req.Tags), req.Pinned)
+	link, err := s.db.InsertLink(req.URL, strings.TrimSpace(req.Commentary), strings.TrimSpace(req.Tags), req.Pinned, meta)
 	if err != nil {
 		slog.Error("failed to insert link", "error", err)
 		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
@@ -410,6 +410,9 @@ func (s *Server) feedRSS(w http.ResponseWriter, r *http.Request) {
 	for _, l := range links {
 		desc := l.Commentary
 		if desc == "" {
+			desc = l.Description
+		}
+		if desc == "" {
 			desc = l.URL
 		}
 		items = append(items, rssItem{
@@ -461,6 +464,8 @@ type jsonFeedItem struct {
 	ExternalURL   string `json:"external_url"`
 	Title         string `json:"title"`
 	ContentHTML   string `json:"content_html"`
+	Summary       string `json:"summary,omitempty"`
+	Image         string `json:"image,omitempty"`
 	DatePublished string `json:"date_published"`
 }
 
@@ -480,6 +485,9 @@ func (s *Server) feedJSON(w http.ResponseWriter, r *http.Request) {
 	for _, l := range links {
 		contentHTML := l.Commentary
 		if contentHTML == "" {
+			contentHTML = l.Description
+		}
+		if contentHTML == "" {
 			contentHTML = fmt.Sprintf(`<a href="%s">%s</a>`, template.HTMLEscapeString(l.URL), template.HTMLEscapeString(l.Title))
 		}
 		items = append(items, jsonFeedItem{
@@ -488,6 +496,8 @@ func (s *Server) feedJSON(w http.ResponseWriter, r *http.Request) {
 			ExternalURL:   l.URL,
 			Title:         l.Title,
 			ContentHTML:   contentHTML,
+			Summary:       l.Description,
+			Image:         l.ImageURL,
 			DatePublished: l.CreatedAt.Format(time.RFC3339),
 		})
 	}

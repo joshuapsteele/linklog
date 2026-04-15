@@ -156,12 +156,15 @@ func (s *Server) adminPostNew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch title from the page unless the user supplied one.
-	if title == "" {
-		meta := FetchPageMeta(url)
-		title = meta.Title
+	meta := FetchPageMeta(url)
+	if title != "" {
+		meta.Title = title
+	}
+	if meta.Title == "" {
+		meta.Title = url
 	}
 
-	link, err := s.db.InsertLink(url, title, commentary, tags, pinned)
+	link, err := s.db.InsertLink(url, commentary, tags, pinned, meta)
 	if err != nil {
 		slog.Error("admin: failed to insert link", "error", err)
 		s.renderAdmin(w, "admin_new.html", map[string]any{
@@ -200,16 +203,24 @@ func (s *Server) adminPostEdit(w http.ResponseWriter, r *http.Request) {
 	title := strings.TrimSpace(r.FormValue("title"))
 	commentary := strings.TrimSpace(r.FormValue("commentary"))
 	tags := strings.TrimSpace(r.FormValue("tags"))
+	description := strings.TrimSpace(r.FormValue("description"))
+	siteName := strings.TrimSpace(r.FormValue("site_name"))
+	imageURL := strings.TrimSpace(r.FormValue("image_url"))
+	canonicalURL := strings.TrimSpace(r.FormValue("canonical_url"))
 	published := r.FormValue("published") == "on"
 	pinned := r.FormValue("pinned") == "on"
 
 	req := UpdateLinkRequest{
-		URL:        &url,
-		Title:      &title,
-		Commentary: &commentary,
-		Tags:       &tags,
-		Published:  &published,
-		Pinned:     &pinned,
+		URL:          &url,
+		Title:        &title,
+		Commentary:   &commentary,
+		Tags:         &tags,
+		Description:  &description,
+		SiteName:     &siteName,
+		ImageURL:     &imageURL,
+		CanonicalURL: &canonicalURL,
+		Published:    &published,
+		Pinned:       &pinned,
 	}
 
 	link, err := s.db.UpdateLink(id, req)

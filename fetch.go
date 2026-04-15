@@ -12,8 +12,11 @@ import (
 
 // PageMeta holds metadata extracted from a fetched URL.
 type PageMeta struct {
-	Title       string
-	Description string
+	Title        string
+	Description  string
+	SiteName     string
+	ImageURL     string
+	CanonicalURL string
 }
 
 // FetchPageMeta fetches the URL and extracts title and description metadata.
@@ -63,13 +66,14 @@ func extractMeta(r io.Reader, fallbackTitle string) PageMeta {
 	var inTitle bool
 	var titleText string
 	var ogTitle, ogDescription, metaDescription string
+	var siteName, imageURL, canonicalURL string
 
 	for {
 		tt := tokenizer.Next()
 		switch tt {
 		case html.ErrorToken:
 			// End of document or error; use what we have.
-			return resolveMeta(meta, titleText, ogTitle, ogDescription, metaDescription)
+			return resolveMeta(meta, fallbackTitle, titleText, ogTitle, ogDescription, metaDescription, siteName, imageURL, canonicalURL)
 
 		case html.StartTagToken, html.SelfClosingTagToken:
 			tn, hasAttr := tokenizer.TagName()
@@ -91,14 +95,28 @@ func extractMeta(r io.Reader, fallbackTitle string) PageMeta {
 					ogTitle = content
 				case property == "og:description":
 					ogDescription = content
+				case property == "og:site_name":
+					siteName = content
+				case property == "og:image":
+					imageURL = content
 				case name == "description":
 					metaDescription = content
 				}
 			}
 
+			if tagName == "link" && hasAttr {
+				attrs := collectAttrs(tokenizer)
+				for _, rel := range strings.Fields(strings.ToLower(attrs["rel"])) {
+					if rel == "canonical" {
+						canonicalURL = attrs["href"]
+						break
+					}
+				}
+			}
+
 			// Stop parsing once we hit the body; meta tags are in the head.
 			if tagName == "body" {
-				return resolveMeta(meta, titleText, ogTitle, ogDescription, metaDescription)
+				return resolveMeta(meta, fallbackTitle, titleText, ogTitle, ogDescription, metaDescription, siteName, imageURL, canonicalURL)
 			}
 
 		case html.TextToken:
@@ -115,7 +133,7 @@ func extractMeta(r io.Reader, fallbackTitle string) PageMeta {
 	}
 }
 
-func resolveMeta(meta PageMeta, titleText, ogTitle, ogDescription, metaDescription string) PageMeta {
+func resolveMeta(meta PageMeta, baseURL, titleText, ogTitle, ogDescription, metaDescription, siteName, imageURL, canonicalURL string) PageMeta {
 	// Prefer og:title over <title>.
 	switch {
 	case ogTitle != "":
@@ -130,6 +148,14 @@ func resolveMeta(meta PageMeta, titleText, ogTitle, ogDescription, metaDescripti
 		meta.Description = strings.TrimSpace(ogDescription)
 	case metaDescription != "":
 		meta.Description = strings.TrimSpace(metaDescription)
+	}
+
+	meta.SiteName = strings.TrimSpace(siteName)
+	if strings.TrimSpace(imageURL) != "" {
+		meta.ImageURL = resolveURL(baseURL, strings.TrimSpace(imageURL))
+	}
+	if strings.TrimSpace(canonicalURL) != "" {
+		meta.CanonicalURL = resolveURL(baseURL, strings.TrimSpace(canonicalURL))
 	}
 
 	return meta

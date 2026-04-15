@@ -15,8 +15,10 @@
     </div>
     <h2 class="p-name"><a class="u-bookmark-of" href="{{ .URL }}" rel="noopener" target="_blank">{{ .Title }}</a>{{ if .Pinned }} <span class="pinned-badge">pinned</span>{{ end }}</h2>
     {{ if .Commentary }}<p class="commentary e-content">{{ .Commentary }}</p>{{ end }}
+    {{ if and .Description (not .Commentary) }}<p class="description p-summary">{{ .Description }}</p>{{ end }}
     <div class="meta">
         <time class="dt-published" datetime="{{ .CreatedAt.Format "2006-01-02T15:04:05Z07:00" }}">{{ .RelativeTime }}</time>
+        {{ if .SiteName }}<span class="site-name">{{ .SiteName }}</span>{{ end }}
         {{ if .TagList }}
         <span class="tags">{{ range $i, $t := .TagList }}{{ if $i }}, {{ end }}<a class="p-category" rel="tag" href="/tag/{{ $t }}">{{ $t }}</a>{{ end }}</span>
         {{ end }}

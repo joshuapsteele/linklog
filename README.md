@@ -28,7 +28,7 @@ linklog/
 ├── handlers.go          # HTTP handlers for API and public pages
 ├── admin.go             # Admin UI handlers (auth, create, edit, delete, webmention)
 ├── db.go                # SQLite initialization, migrations, queries
-├── fetch.go             # URL metadata extraction (title, description)
+├── fetch.go             # URL metadata extraction (title, description, site, image, canonical URL)
 ├── webmention.go        # Webmention discovery and async sending
 ├── models.go            # Link struct, request/response types
 ├── templates/
@@ -123,7 +123,7 @@ Visit `http://localhost:8080` in a browser to see the public feed, or `http://lo
 
 All API routes require an `Authorization: Bearer <token>` header matching `LINKLOG_API_TOKEN`.
 
-**POST /api/links** — Create a new link. The server fetches the URL to extract the page title automatically, then queues a webmention to the target URL. Request body:
+**POST /api/links** — Create a new link. The server fetches the URL to extract page metadata automatically, then queues a webmention to the target URL. Request body:
 
 ```json
 {
@@ -136,7 +136,7 @@ All API routes require an `Authorization: Bearer <token>` header matching `LINKL
 
 **GET /api/links** — List all links as JSON. Optional query parameters: `?q=sqlite`, `?tag=go`, `?published=false`, `?pinned=true`, `?limit=50`.
 
-**PATCH /api/links/{id}** — Partial update. Send only the fields you want to change, including `pinned` for promoting a link to the pinned page.
+**PATCH /api/links/{id}** — Partial update. Send only the fields you want to change, including `pinned` for promoting a link to the pinned page. Metadata fields can also be edited: `description`, `site_name`, `image_url`, and `canonical_url`.
 
 **DELETE /api/links/{id}** — Delete a link. Returns 204 on success, 404 if not found.
 
@@ -146,7 +146,7 @@ These are unauthenticated HTML pages:
 
 - **GET /** — Main feed, 20 links per page, reverse chronological order
 - **GET /pinned** — Pinned/recommended links
-- **GET /search?q=term** — Search published links by title, URL, commentary, or tag
+- **GET /search?q=term** — Search published links by title, URL, commentary, tag, description, site name, or canonical URL
 - **GET /link/{id}** — Permalink for a single link entry
 - **GET /tag/{tag}** — Feed filtered to a specific tag
 - **GET /about** — About page
