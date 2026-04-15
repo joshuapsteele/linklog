@@ -17,3 +17,11 @@ func TestPublicTemplatesParse(t *testing.T) {
 		}
 	}
 }
+
+func TestAdminTemplatesParse(t *testing.T) {
+	for _, page := range []string{"admin_login.html", "admin_index.html", "admin_edit.html", "admin_new.html"} {
+		if _, err := template.New("").ParseFS(templateFS, "templates/admin_base.html", "templates/"+page); err != nil {
+			t.Fatalf("parse %s: %v", page, err)
+		}
+	}
+}

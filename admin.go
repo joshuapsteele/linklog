@@ -200,9 +200,10 @@ func (s *Server) adminGetEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.renderAdmin(w, "admin_edit.html", map[string]any{
-		"Link":  link,
-		"Error": "",
-		"Flash": r.URL.Query().Get("flash"),
+		"Link":      link,
+		"Permalink": s.linkPermalink(link.ID),
+		"Error":     "",
+		"Flash":     r.URL.Query().Get("flash"),
 	})
 }
 

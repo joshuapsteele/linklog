@@ -18,6 +18,7 @@
 
         <label for="tags">Tags <span class="label-hint">(comma-separated)</span></label>
         <input type="text" id="tags" name="tags" value="{{ index .Form "tags" }}" placeholder="go,indieweb,tools">
+        <p class="field-help">Tags save as lowercase slugs, separated by commas.</p>
 
         <label class="checkbox-label">
             <input type="checkbox" name="pinned" {{ if index .Form "pinned" }}checked{{ end }}>

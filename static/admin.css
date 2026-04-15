@@ -96,6 +96,13 @@
     margin-bottom: var(--gap);
 }
 
+.admin-edit-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: var(--gap);
+}
+
 /* Flash message */
 .flash {
     font-size: 0.875rem;
@@ -263,6 +270,12 @@
 .label-hint {
     font-weight: normal;
     color: var(--secondary);
+}
+
+.field-help {
+    color: var(--secondary);
+    font-size: 0.8rem;
+    margin-top: -0.65rem;
 }
 
 .admin-form input[type="text"],

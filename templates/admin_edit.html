@@ -6,6 +6,12 @@
     {{ if .Flash }}<p class="flash">{{ .Flash }}</p>{{ end }}
     {{ if .Error }}<p class="form-error">{{ .Error }}</p>{{ end }}
 
+    <div class="admin-edit-actions" aria-label="Link actions">
+        <a href="/link/{{ .Link.ID }}" target="_blank" rel="noopener" class="btn-secondary">View public page</a>
+        <a href="{{ .Link.URL }}" target="_blank" rel="noopener" class="btn-secondary">Open original</a>
+        <button type="button" class="btn-secondary copy-permalink" data-copy="{{ .Permalink }}">Copy permalink</button>
+    </div>
+
     <form method="POST" action="/admin/links/{{ .Link.ID }}/metadata" class="metadata-refetch-form">
         <button type="submit" class="btn-secondary">Refetch metadata</button>
         <span class="label-hint">Updates fetched metadata; title changes only if it is blank or still the URL.</span>
@@ -24,6 +30,7 @@
 
         <label for="tags">Tags <span class="label-hint">(comma-separated)</span></label>
         <input type="text" id="tags" name="tags" value="{{ .Link.Tags }}" placeholder="go,indieweb,tools">
+        <p class="field-help">Tags save as lowercase slugs, separated by commas.</p>
 
         <fieldset class="metadata-fields">
             <legend>Fetched metadata</legend>
@@ -66,4 +73,41 @@
         </div>
     </form>
 </div>
+
+<script>
+(function() {
+    var buttons = document.querySelectorAll('.copy-permalink');
+    buttons.forEach(function(button) {
+        button.addEventListener('click', function() {
+            var text = button.getAttribute('data-copy');
+            if (!text) return;
+
+            copyText(text).then(function() {
+                var original = button.textContent;
+                button.textContent = 'Copied';
+                window.setTimeout(function() {
+                    button.textContent = original;
+                }, 1600);
+            });
+        });
+    });
+
+    function copyText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text);
+        }
+
+        var input = document.createElement('input');
+        input.value = text;
+        input.setAttribute('readonly', '');
+        input.style.position = 'absolute';
+        input.style.left = '-9999px';
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        return Promise.resolve();
+    }
+})();
+</script>
 {{ end }}
