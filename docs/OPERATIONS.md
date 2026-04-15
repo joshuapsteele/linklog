@@ -168,6 +168,7 @@ The file contains:
 
 ```
 LINKLOG_API_TOKEN=your-secret-token
+LINKLOG_ADMIN_PASSWORD=your-admin-password
 LINKLOG_DB_PATH=/opt/linklog/linklog.db
 LINKLOG_PORT=8080
 LINKLOG_BASE_URL=https://links.joshuapsteele.com
@@ -179,7 +180,7 @@ After editing, restart the service to pick up changes:
 ssh linklog-server 'sudo systemctl restart linklog'
 ```
 
-Keep the API token secret — it's what protects the `/api/links` endpoint used by your Drafts action.
+Keep both secrets private. `LINKLOG_API_TOKEN` protects the `/api/links` endpoint used by your Drafts action. `LINKLOG_ADMIN_PASSWORD` is only for the browser-based admin UI at `/admin`.
 
 ---
 
@@ -384,6 +385,7 @@ ssh linklog-server 'sudo journalctl -u linklog -n 50'
 
 Common causes:
 - Missing or incorrect `LINKLOG_API_TOKEN` in `/opt/linklog/.env`
+- Missing `LINKLOG_ADMIN_PASSWORD` in `/opt/linklog/.env`
 - Database file permissions (should be owned by `joshuapsteele`)
 - Port 8080 already in use — check with `sudo ss -tlnp | grep 8080`
 - Binary compiled for the wrong architecture (must be `linux/amd64`)

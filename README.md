@@ -91,6 +91,7 @@ make run
 ```
 
 This starts the server at `http://localhost:8080`. The SQLite database is created automatically on first run. The admin UI is at `http://localhost:8080/admin`.
+For `make run`, the local admin password is `dev-admin-password-change-me`.
 
 Test the API:
 
@@ -154,7 +155,7 @@ These are unauthenticated HTML pages:
 
 ## Admin UI
 
-The admin UI lives at `/admin` and requires a password (set via `LINKLOG_ADMIN_PASSWORD`). Authentication is cookie-based with a 7-day session. The cookie is marked `Secure` when the base URL uses HTTPS.
+The admin UI lives at `/admin` and requires a password (set via `LINKLOG_ADMIN_PASSWORD`). This is separate from `LINKLOG_API_TOKEN`, which only authenticates API requests. Authentication is cookie-based with a signed 7-day session. The cookie is marked `Secure` when the base URL uses HTTPS.
 
 - **GET /admin** — Dashboard listing all links with edit, delete, and webmention controls
 - **GET /admin/login** — Login form

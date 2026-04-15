@@ -7,6 +7,7 @@ build:
 # Run locally for development.
 run: build
 	LINKLOG_API_TOKEN=dev-token-change-me \
+	LINKLOG_ADMIN_PASSWORD=dev-admin-password-change-me \
 	LINKLOG_DB_PATH=./linklog.db \
 	LINKLOG_BASE_URL=http://localhost:8080 \
 	./linklog

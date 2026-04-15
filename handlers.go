@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -23,6 +24,7 @@ type Server struct {
 	templates map[string]*template.Template
 	baseURL   string
 	token     string
+	adminPass string
 	secure    bool // true when serving over HTTPS; controls cookie Secure flag
 }
 
@@ -509,7 +511,8 @@ func (s *Server) feedJSON(w http.ResponseWriter, r *http.Request) {
 func (s *Server) requireToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
-		if !strings.HasPrefix(auth, "Bearer ") || strings.TrimPrefix(auth, "Bearer ") != s.token {
+		token := strings.TrimPrefix(auth, "Bearer ")
+		if !strings.HasPrefix(auth, "Bearer ") || subtle.ConstantTimeCompare([]byte(token), []byte(s.token)) != 1 {
 			http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 			return
 		}

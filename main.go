@@ -27,6 +27,11 @@ func main() {
 		slog.Error("LINKLOG_API_TOKEN is required")
 		os.Exit(1)
 	}
+	adminPass := os.Getenv("LINKLOG_ADMIN_PASSWORD")
+	if adminPass == "" {
+		slog.Error("LINKLOG_ADMIN_PASSWORD is required")
+		os.Exit(1)
+	}
 
 	dbPath := envOr("LINKLOG_DB_PATH", "./linklog.db")
 	port := envOr("LINKLOG_PORT", "8080")
@@ -77,6 +82,7 @@ func main() {
 		templates: templates,
 		baseURL:   baseURL,
 		token:     token,
+		adminPass: adminPass,
 		secure:    strings.HasPrefix(baseURL, "https://"),
 	}
 

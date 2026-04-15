@@ -5,8 +5,8 @@
     <h1>LinkLog Admin</h1>
     {{ if .Error }}<p class="form-error">{{ .Error }}</p>{{ end }}
     <form method="POST" action="/admin/login" class="admin-form">
-        <label for="token">API Token</label>
-        <input type="password" id="token" name="token" autofocus autocomplete="current-password" placeholder="Paste your LINKLOG_API_TOKEN">
+        <label for="password">Admin password</label>
+        <input type="password" id="password" name="password" autofocus autocomplete="current-password" placeholder="Enter your LINKLOG_ADMIN_PASSWORD">
         <button type="submit" class="btn-primary">Log in</button>
     </form>
 </div>

@@ -1,16 +1,22 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
 
 const sessionCookieName = "linklog_session"
+const adminSessionDuration = 7 * 24 * time.Hour
 
 // --- Cookie auth middleware ---
 
@@ -18,7 +24,7 @@ const sessionCookieName = "linklog_session"
 func (s *Server) adminRequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(sessionCookieName)
-		if err != nil || cookie.Value != s.token {
+		if err != nil || !s.validAdminSession(cookie.Value) {
 			http.Redirect(w, r, "/admin/login", http.StatusSeeOther)
 			return
 		}
@@ -30,7 +36,7 @@ func (s *Server) adminRequireAuth(next http.Handler) http.Handler {
 
 // adminGetLogin shows the login form.
 func (s *Server) adminGetLogin(w http.ResponseWriter, r *http.Request) {
-	if cookie, err := r.Cookie(sessionCookieName); err == nil && cookie.Value == s.token {
+	if cookie, err := r.Cookie(sessionCookieName); err == nil && s.validAdminSession(cookie.Value) {
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		return
 	}
@@ -39,18 +45,19 @@ func (s *Server) adminGetLogin(w http.ResponseWriter, r *http.Request) {
 
 // adminPostLogin handles the login form submission.
 func (s *Server) adminPostLogin(w http.ResponseWriter, r *http.Request) {
-	if r.FormValue("token") != s.token {
-		s.renderAdmin(w, "admin_login.html", map[string]any{"Error": "Invalid token."})
+	if subtle.ConstantTimeCompare([]byte(r.FormValue("password")), []byte(s.adminPass)) != 1 {
+		s.renderAdmin(w, "admin_login.html", map[string]any{"Error": "Invalid password."})
 		return
 	}
+	expires := time.Now().Add(adminSessionDuration)
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
-		Value:    s.token,
+		Value:    s.newAdminSession(expires),
 		Path:     "/admin",
 		HttpOnly: true,
 		Secure:   s.secure,
 		SameSite: http.SameSiteLaxMode,
-		MaxAge:   7 * 24 * 60 * 60, // 7 days
+		MaxAge:   int(adminSessionDuration.Seconds()),
 	})
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
@@ -58,12 +65,43 @@ func (s *Server) adminPostLogin(w http.ResponseWriter, r *http.Request) {
 // adminPostLogout clears the session cookie.
 func (s *Server) adminPostLogout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
-		Name:   sessionCookieName,
-		Value:  "",
-		Path:   "/admin",
-		MaxAge: -1,
+		Name:     sessionCookieName,
+		Value:    "",
+		Path:     "/admin",
+		HttpOnly: true,
+		Secure:   s.secure,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
 	})
 	http.Redirect(w, r, "/admin/login", http.StatusSeeOther)
+}
+
+func (s *Server) newAdminSession(expires time.Time) string {
+	exp := strconv.FormatInt(expires.Unix(), 10)
+	sig := s.signAdminSession(exp)
+	return exp + "." + sig
+}
+
+func (s *Server) validAdminSession(value string) bool {
+	exp, sig, ok := strings.Cut(value, ".")
+	if !ok || exp == "" || sig == "" {
+		return false
+	}
+
+	expiresUnix, err := strconv.ParseInt(exp, 10, 64)
+	if err != nil || time.Now().Unix() > expiresUnix {
+		return false
+	}
+
+	expected := s.signAdminSession(exp)
+	return subtle.ConstantTimeCompare([]byte(sig), []byte(expected)) == 1
+}
+
+func (s *Server) signAdminSession(exp string) string {
+	mac := hmac.New(sha256.New, []byte(s.adminPass))
+	mac.Write([]byte("linklog-admin-session:"))
+	mac.Write([]byte(exp))
+	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 
 // --- Admin pages ---
