@@ -152,6 +152,7 @@ These are unauthenticated HTML pages:
 - **GET /about** — About page
 - **GET /feed.xml** — RSS 2.0 feed (most recent 50 links)
 - **GET /feed.json** — JSON Feed 1.1 (most recent 50 links)
+- **GET /pinned/feed.json** — JSON Feed 1.1 (most recent 50 pinned links)
 
 ## Admin UI
 

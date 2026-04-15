@@ -108,6 +108,7 @@ func main() {
 	r.Get("/about", srv.pageAbout)
 	r.Get("/feed.xml", srv.feedRSS)
 	r.Get("/feed.json", srv.feedJSON)
+	r.Get("/pinned/feed.json", srv.feedPinnedJSON)
 
 	// Authenticated API.
 	r.Route("/api", func(r chi.Router) {

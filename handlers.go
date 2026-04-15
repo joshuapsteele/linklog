@@ -471,10 +471,31 @@ type jsonFeedItem struct {
 
 // feedJSON handles GET /feed.json.
 func (s *Server) feedJSON(w http.ResponseWriter, r *http.Request) {
+	pub := true
+	s.renderJSONFeed(w, LinkFilter{Published: &pub, Limit: 50}, jsonFeed{
+		Title:       "LinkLog — Joshua Steele",
+		HomePageURL: s.baseURL,
+		FeedURL:     s.baseURL + "/feed.json",
+		Description: "Interesting links with short commentary.",
+	})
+}
+
+// feedPinnedJSON handles GET /pinned/feed.json.
+func (s *Server) feedPinnedJSON(w http.ResponseWriter, r *http.Request) {
+	pub := true
+	pinned := true
+	s.renderJSONFeed(w, LinkFilter{Published: &pub, Pinned: &pinned, Limit: 50}, jsonFeed{
+		Title:       "Pinned Links — Joshua Steele",
+		HomePageURL: s.baseURL + "/pinned",
+		FeedURL:     s.baseURL + "/pinned/feed.json",
+		Description: "Recommended saved links from Joshua Steele.",
+	})
+}
+
+func (s *Server) renderJSONFeed(w http.ResponseWriter, filter LinkFilter, feed jsonFeed) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	pub := true
-	links, err := s.db.ListLinks(LinkFilter{Published: &pub, Limit: 50})
+	links, err := s.db.ListLinks(filter)
 	if err != nil {
 		slog.Error("failed to list links for JSON feed", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -502,14 +523,8 @@ func (s *Server) feedJSON(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	feed := jsonFeed{
-		Version:     "https://jsonfeed.org/version/1.1",
-		Title:       "LinkLog — Joshua Steele",
-		HomePageURL: s.baseURL,
-		FeedURL:     s.baseURL + "/feed.json",
-		Description: "Interesting links with short commentary.",
-		Items:       items,
-	}
+	feed.Version = "https://jsonfeed.org/version/1.1"
+	feed.Items = items
 
 	w.Header().Set("Content-Type", "application/feed+json; charset=utf-8")
 	json.NewEncoder(w).Encode(feed)
