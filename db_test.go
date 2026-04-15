@@ -56,7 +56,7 @@ func TestOpenDBMigratesOldSchemaAndScansExistingRows(t *testing.T) {
 			published BOOLEAN NOT NULL DEFAULT 1
 		);
 		INSERT INTO links (url, title, commentary, tags)
-		VALUES ('https://example.com', 'Example Domain', 'Old row', 'old');
+		VALUES ('https://example.com', 'Example Domain', 'Old row', 'Go, Indie Web, go');
 	`)
 	if err != nil {
 		t.Fatalf("create old schema: %v", err)
@@ -93,7 +93,7 @@ func TestOpenDBMigratesOldSchemaAndScansExistingRows(t *testing.T) {
 	if link == nil {
 		t.Fatal("expected migrated link")
 	}
-	if link.Title != "Example Domain" || link.Description != "" || link.Pinned {
+	if link.Title != "Example Domain" || link.Description != "" || link.Pinned || link.Tags != "go,indie-web" {
 		t.Fatalf("unexpected migrated link: %+v", link)
 	}
 	if link.WebmentionStatus != "pending" {
@@ -117,6 +117,73 @@ func TestListLinksPinnedFilter(t *testing.T) {
 	}
 	if links[0].Title != "Pinned" || !links[0].Pinned {
 		t.Fatalf("unexpected pinned link: %+v", links[0])
+	}
+}
+
+func TestNormalizeTags(t *testing.T) {
+	got := NormalizeTags(" Go, #Indie Web,go, tools!,  ")
+	want := "go,indie-web,tools"
+	if got != want {
+		t.Fatalf("NormalizeTags() = %q, want %q", got, want)
+	}
+}
+
+func TestInsertAndUpdateNormalizeTags(t *testing.T) {
+	db := openTestDB(t)
+
+	link := insertTestLink(t, db, "https://example.com/tags", "Tags", "note", "Go, Indie Web, go", false, PageMeta{Title: "Tags"})
+	if link.Tags != "go,indie-web" {
+		t.Fatalf("expected inserted tags to be normalized, got %q", link.Tags)
+	}
+
+	tags := "SQLite, Personal Knowledge Management, sqlite"
+	updated, err := db.UpdateLink(link.ID, UpdateLinkRequest{Tags: &tags})
+	if err != nil {
+		t.Fatalf("update tags: %v", err)
+	}
+	if updated.Tags != "sqlite,personal-knowledge-management" {
+		t.Fatalf("expected updated tags to be normalized, got %q", updated.Tags)
+	}
+}
+
+func TestListLinksTagFilterUsesNormalizedTags(t *testing.T) {
+	db := openTestDB(t)
+
+	insertTestLink(t, db, "https://example.com/one", "One", "note", "Indie Web", false, PageMeta{Title: "One"})
+	insertTestLink(t, db, "https://example.com/two", "Two", "note", "go", false, PageMeta{Title: "Two"})
+
+	links, err := db.ListLinks(LinkFilter{Tag: "indie web"})
+	if err != nil {
+		t.Fatalf("list normalized tag: %v", err)
+	}
+	if len(links) != 1 || links[0].Title != "One" {
+		t.Fatalf("unexpected normalized tag results: %+v", links)
+	}
+}
+
+func TestListTagCounts(t *testing.T) {
+	db := openTestDB(t)
+
+	insertTestLink(t, db, "https://example.com/one", "One", "note", "go,tools", false, PageMeta{Title: "One"})
+	insertTestLink(t, db, "https://example.com/two", "Two", "note", "go", false, PageMeta{Title: "Two"})
+	draft := insertTestLink(t, db, "https://example.com/draft", "Draft", "note", "draft,go", false, PageMeta{Title: "Draft"})
+	published := false
+	if _, err := db.UpdateLink(draft.ID, UpdateLinkRequest{Published: &published}); err != nil {
+		t.Fatalf("mark draft unpublished: %v", err)
+	}
+
+	tags, err := db.ListTagCounts()
+	if err != nil {
+		t.Fatalf("list tag counts: %v", err)
+	}
+	if len(tags) != 2 {
+		t.Fatalf("expected 2 published tags, got %+v", tags)
+	}
+	if tags[0] != (TagCount{Name: "go", Count: 2}) {
+		t.Fatalf("unexpected first tag count: %+v", tags[0])
+	}
+	if tags[1] != (TagCount{Name: "tools", Count: 1}) {
+		t.Fatalf("unexpected second tag count: %+v", tags[1])
 	}
 }
 

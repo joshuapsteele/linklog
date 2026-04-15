@@ -187,6 +187,28 @@ header nav a + a {
     border-bottom: 1px solid var(--border);
 }
 
+.tag-index {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    list-style: none;
+}
+
+.tag-index li {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.25rem 0.55rem;
+    font-size: 0.9rem;
+}
+
+.tag-index span {
+    color: var(--secondary);
+    font-size: 0.8rem;
+}
+
 /* Pagination */
 
 .pagination {

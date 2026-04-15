@@ -39,6 +39,7 @@ func (s *Server) apiCreateLink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req.URL = strings.TrimSpace(req.URL)
+	req.Tags = NormalizeTags(req.Tags)
 	if req.URL == "" || (!strings.HasPrefix(req.URL, "http://") && !strings.HasPrefix(req.URL, "https://")) {
 		http.Error(w, `{"error":"url is required and must start with http:// or https://"}`, http.StatusBadRequest)
 		return
@@ -176,6 +177,10 @@ type feedData struct {
 	Query      string
 }
 
+type tagsData struct {
+	Tags []TagCount
+}
+
 // pageFeed handles GET / (main feed).
 func (s *Server) pageFeed(w http.ResponseWriter, r *http.Request) {
 	page := pageNum(r)
@@ -301,11 +306,28 @@ func (s *Server) pagePinned(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "feed.html", data)
 }
 
+// pageTags handles GET /tags.
+func (s *Server) pageTags(w http.ResponseWriter, r *http.Request) {
+	tags, err := s.db.ListTagCounts()
+	if err != nil {
+		slog.Error("failed to list tag counts", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	s.render(w, "tags.html", tagsData{Tags: tags})
+}
+
 // pageTag handles GET /tag/{tag}.
 func (s *Server) pageTag(w http.ResponseWriter, r *http.Request) {
-	tag := chi.URLParam(r, "tag")
+	rawTag := chi.URLParam(r, "tag")
+	tag := NormalizeTag(rawTag)
 	if tag == "" {
 		http.NotFound(w, r)
+		return
+	}
+	if rawTag != tag {
+		http.Redirect(w, r, "/tag/"+tag, http.StatusMovedPermanently)
 		return
 	}
 

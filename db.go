@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"sort"
 	"strings"
 	"time"
 
@@ -87,12 +88,52 @@ func (db *DB) migrate() error {
 		return err
 	}
 
+	if err := db.normalizeExistingTags(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *DB) normalizeExistingTags() error {
+	rows, err := db.conn.Query(`SELECT id, tags FROM links WHERE tags != ''`)
+	if err != nil {
+		return fmt.Errorf("list tags for normalization: %w", err)
+	}
+	defer rows.Close()
+
+	type tagUpdate struct {
+		id   int64
+		tags string
+	}
+	updates := make([]tagUpdate, 0)
+	for rows.Next() {
+		var id int64
+		var tags string
+		if err := rows.Scan(&id, &tags); err != nil {
+			return fmt.Errorf("scan tags for normalization: %w", err)
+		}
+		if normalized := NormalizeTags(tags); normalized != tags {
+			updates = append(updates, tagUpdate{id: id, tags: normalized})
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("tags normalization rows: %w", err)
+	}
+
+	for _, update := range updates {
+		if _, err := db.conn.Exec(`UPDATE links SET tags = ?, updated_at = ? WHERE id = ?`, update.tags, time.Now().UTC(), update.id); err != nil {
+			return fmt.Errorf("normalize tags for link %d: %w", update.id, err)
+		}
+	}
+
 	return nil
 }
 
 // InsertLink inserts a new link and returns it with its assigned ID and timestamps.
 func (db *DB) InsertLink(url, commentary, tags string, pinned bool, meta PageMeta) (*Link, error) {
 	now := time.Now().UTC()
+	tags = NormalizeTags(tags)
 	result, err := db.conn.Exec(
 		`INSERT INTO links (url, title, commentary, tags, description, site_name, image_url, canonical_url, created_at, updated_at, published, pinned, webmention_status, webmention_endpoint)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 'pending', '')`,
@@ -185,8 +226,9 @@ func (db *DB) UpdateLink(id int64, req UpdateLinkRequest) (*Link, error) {
 		args = append(args, *req.Commentary)
 	}
 	if req.Tags != nil {
+		normalized := NormalizeTags(*req.Tags)
 		sets = append(sets, "tags = ?")
-		args = append(args, *req.Tags)
+		args = append(args, normalized)
 	}
 	if req.Description != nil {
 		sets = append(sets, "description = ?")
@@ -285,12 +327,19 @@ type LinkFilter struct {
 	Offset    int
 }
 
+// TagCount holds the number of published links with a tag.
+type TagCount struct {
+	Name  string
+	Count int
+}
+
 // ListLinks returns links matching the given filter, ordered by created_at DESC.
 func (db *DB) ListLinks(f LinkFilter) ([]Link, error) {
 	where := make([]string, 0)
 	args := make([]any, 0)
 
 	if f.Tag != "" {
+		f.Tag = NormalizeTag(f.Tag)
 		// Match tag as a whole word within comma-separated list.
 		where = append(where, "(tags = ? OR tags LIKE ? OR tags LIKE ? OR tags LIKE ?)")
 		args = append(args, f.Tag, f.Tag+",%", "%,"+f.Tag, "%,"+f.Tag+",%")
@@ -345,6 +394,7 @@ func (db *DB) CountLinks(f LinkFilter) (int, error) {
 	args := make([]any, 0)
 
 	if f.Tag != "" {
+		f.Tag = NormalizeTag(f.Tag)
 		where = append(where, "(tags = ? OR tags LIKE ? OR tags LIKE ? OR tags LIKE ?)")
 		args = append(args, f.Tag, f.Tag+",%", "%,"+f.Tag, "%,"+f.Tag+",%")
 	}
@@ -370,6 +420,42 @@ func (db *DB) CountLinks(f LinkFilter) (int, error) {
 	var count int
 	err := db.conn.QueryRow(query, args...).Scan(&count)
 	return count, err
+}
+
+// ListTagCounts returns tag counts from published links, sorted by count then name.
+func (db *DB) ListTagCounts() ([]TagCount, error) {
+	rows, err := db.conn.Query(`SELECT tags FROM links WHERE published = 1 AND tags != ''`)
+	if err != nil {
+		return nil, fmt.Errorf("list tag counts: %w", err)
+	}
+	defer rows.Close()
+
+	counts := make(map[string]int)
+	for rows.Next() {
+		var tags string
+		if err := rows.Scan(&tags); err != nil {
+			return nil, fmt.Errorf("scan tag counts: %w", err)
+		}
+		for _, tag := range SplitTags(tags) {
+			counts[tag]++
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("tag count rows: %w", err)
+	}
+
+	tagCounts := make([]TagCount, 0, len(counts))
+	for tag, count := range counts {
+		tagCounts = append(tagCounts, TagCount{Name: tag, Count: count})
+	}
+	sort.Slice(tagCounts, func(i, j int) bool {
+		if tagCounts[i].Count == tagCounts[j].Count {
+			return tagCounts[i].Name < tagCounts[j].Name
+		}
+		return tagCounts[i].Count > tagCounts[j].Count
+	})
+
+	return tagCounts, nil
 }
 
 // scanner is satisfied by both *sql.Row and *sql.Rows.

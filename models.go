@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // Link represents a single saved link entry.
@@ -28,18 +29,75 @@ type Link struct {
 
 // TagList returns the tags split into a slice, filtering out empty strings.
 func (l Link) TagList() []string {
-	if l.Tags == "" {
+	return SplitTags(l.Tags)
+}
+
+// SplitTags returns normalized tag names from a comma-separated tag string.
+func SplitTags(value string) []string {
+	if value == "" {
 		return nil
 	}
-	raw := strings.Split(l.Tags, ",")
+	raw := strings.Split(value, ",")
 	tags := make([]string, 0, len(raw))
 	for _, t := range raw {
-		t = strings.TrimSpace(t)
+		t = NormalizeTag(t)
 		if t != "" {
 			tags = append(tags, t)
 		}
 	}
 	return tags
+}
+
+// NormalizeTags returns a canonical comma-separated tag string.
+func NormalizeTags(value string) string {
+	tags := SplitTags(value)
+	if len(tags) == 0 {
+		return ""
+	}
+	seen := make(map[string]bool, len(tags))
+	normalized := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		if !seen[tag] {
+			seen[tag] = true
+			normalized = append(normalized, tag)
+		}
+	}
+	return strings.Join(normalized, ",")
+}
+
+// NormalizeTag returns the canonical form for a single tag.
+func NormalizeTag(value string) string {
+	value = strings.TrimSpace(strings.TrimPrefix(value, "#"))
+	if value == "" {
+		return ""
+	}
+
+	var b strings.Builder
+	lastHyphen := false
+	for _, r := range value {
+		switch {
+		case unicode.IsLetter(r) || unicode.IsDigit(r):
+			b.WriteRune(unicode.ToLower(r))
+			lastHyphen = false
+		case r == '-' || r == '_' || r == '.':
+			if !lastHyphen {
+				b.WriteRune(r)
+				lastHyphen = r == '-'
+			}
+		case unicode.IsSpace(r):
+			if b.Len() > 0 && !lastHyphen {
+				b.WriteRune('-')
+				lastHyphen = true
+			}
+		default:
+			if b.Len() > 0 && !lastHyphen {
+				b.WriteRune('-')
+				lastHyphen = true
+			}
+		}
+	}
+
+	return strings.Trim(b.String(), "-_.")
 }
 
 // RelativeTime returns a human-friendly relative timestamp.

@@ -137,7 +137,7 @@ func (s *Server) adminPostNew(w http.ResponseWriter, r *http.Request) {
 	url := strings.TrimSpace(r.FormValue("url"))
 	title := strings.TrimSpace(r.FormValue("title"))
 	commentary := strings.TrimSpace(r.FormValue("commentary"))
-	tags := strings.TrimSpace(r.FormValue("tags"))
+	tags := NormalizeTags(r.FormValue("tags"))
 	pinned := r.FormValue("pinned") == "on"
 
 	formVals := map[string]string{
@@ -217,7 +217,7 @@ func (s *Server) adminPostEdit(w http.ResponseWriter, r *http.Request) {
 	url := strings.TrimSpace(r.FormValue("url"))
 	title := strings.TrimSpace(r.FormValue("title"))
 	commentary := strings.TrimSpace(r.FormValue("commentary"))
-	tags := strings.TrimSpace(r.FormValue("tags"))
+	tags := NormalizeTags(r.FormValue("tags"))
 	description := strings.TrimSpace(r.FormValue("description"))
 	siteName := strings.TrimSpace(r.FormValue("site_name"))
 	imageURL := strings.TrimSpace(r.FormValue("image_url"))

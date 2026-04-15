@@ -140,6 +140,8 @@ If the exact URL already exists, LinkLog returns the existing link as JSON with 
 
 **PATCH /api/links/{id}** — Partial update. Send only the fields you want to change, including `pinned` for promoting a link to the pinned page. Metadata fields can also be edited: `description`, `site_name`, `image_url`, and `canonical_url`.
 
+Tags are normalized on save: trimmed, lowercased, de-duplicated, and stored as comma-separated slugs (for example, `Indie Web, Go, go` becomes `indie-web,go`).
+
 **DELETE /api/links/{id}** — Delete a link. Returns 204 on success, 404 if not found.
 
 ## Public Pages
@@ -149,6 +151,7 @@ These are unauthenticated HTML pages:
 - **GET /** — Main feed, 20 links per page, reverse chronological order
 - **GET /pinned** — Pinned/recommended links
 - **GET /search?q=term** — Search published links by title, URL, commentary, tag, description, site name, or canonical URL
+- **GET /tags** — Tag index with published-link counts
 - **GET /link/{id}** — Permalink for a single link entry
 - **GET /tag/{tag}** — Feed filtered to a specific tag
 - **GET /about** — About page

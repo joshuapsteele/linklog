@@ -1,0 +1,19 @@
+{{ define "title" }}Tags — LinkLog{{ end }}
+
+{{ define "content" }}
+<section>
+<h1 class="tag-heading">Tags</h1>
+
+{{ if not .Tags }}
+<p class="empty">No tags yet.</p>
+{{ end }}
+
+{{ if .Tags }}
+<ul class="tag-index">
+    {{ range .Tags }}
+    <li><a rel="tag" href="/tag/{{ .Name }}">{{ .Name }}</a> <span>{{ .Count }}</span></li>
+    {{ end }}
+</ul>
+{{ end }}
+</section>
+{{ end }}
