@@ -3,7 +3,13 @@
 {{ define "content" }}
 <div class="admin-form-wrap">
     <h1>Edit Link</h1>
+    {{ if .Flash }}<p class="flash">{{ .Flash }}</p>{{ end }}
     {{ if .Error }}<p class="form-error">{{ .Error }}</p>{{ end }}
+
+    <form method="POST" action="/admin/links/{{ .Link.ID }}/metadata" class="metadata-refetch-form">
+        <button type="submit" class="btn-secondary">Refetch metadata</button>
+        <span class="label-hint">Updates fetched metadata; title changes only if it is blank or still the URL.</span>
+    </form>
 
     <form method="POST" action="/admin/links/{{ .Link.ID }}/edit" class="admin-form">
 

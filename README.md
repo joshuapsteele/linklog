@@ -161,6 +161,7 @@ The admin UI lives at `/admin` and requires a password (set via `LINKLOG_ADMIN_P
 - **GET /admin/login** — Login form
 - **GET /admin/links/new** — Form to create a new link (with the same auto-fetch behavior as the API)
 - **GET /admin/links/{id}/edit** — Form to edit a link's title, URL, commentary, tags, pinned status, and published status
+- **POST /admin/links/{id}/metadata** — Refetch metadata for a link while preserving commentary, tags, pinned status, and published status
 - **POST /admin/links/{id}/delete** — Delete a link (with a confirmation prompt in the browser)
 - **POST /admin/links/{id}/webmention** — Manually retry sending a webmention for a link
 

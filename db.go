@@ -227,6 +227,43 @@ func (db *DB) UpdateLink(id int64, req UpdateLinkRequest) (*Link, error) {
 	return db.GetLink(id)
 }
 
+// UpdateLinkMetadata updates fetched metadata while preserving user-authored fields.
+// The title is only overwritten when overwriteTitle is true.
+func (db *DB) UpdateLinkMetadata(id int64, meta PageMeta, overwriteTitle bool) (*Link, error) {
+	query := `UPDATE links
+		SET description = ?, site_name = ?, image_url = ?, canonical_url = ?, updated_at = ?`
+	args := []any{
+		meta.Description,
+		meta.SiteName,
+		meta.ImageURL,
+		meta.CanonicalURL,
+		time.Now().UTC(),
+	}
+
+	if overwriteTitle {
+		query += `, title = ?`
+		args = append(args, meta.Title)
+	}
+
+	query += ` WHERE id = ?`
+	args = append(args, id)
+
+	result, err := db.conn.Exec(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("update link metadata: %w", err)
+	}
+
+	n, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("rows affected: %w", err)
+	}
+	if n == 0 {
+		return nil, nil
+	}
+
+	return db.GetLink(id)
+}
+
 // LinkFilter holds optional query parameters for listing links.
 type LinkFilter struct {
 	Tag       string

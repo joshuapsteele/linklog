@@ -38,6 +38,9 @@
     </div>
     <div class="admin-entry-actions">
         <a href="/admin/links/{{ .ID }}/edit" class="btn-secondary">Edit</a>
+        <form method="POST" action="/admin/links/{{ .ID }}/metadata">
+            <button type="submit" class="btn-secondary">Metadata</button>
+        </form>
         <form method="POST" action="/admin/links/{{ .ID }}/webmention">
             <button type="submit" class="btn-webmention" title="Re-send webmention">
                 {{- if eq .WebmentionStatus "sent" -}}✓ sent

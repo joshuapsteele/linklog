@@ -188,6 +188,7 @@ func (s *Server) adminGetEdit(w http.ResponseWriter, r *http.Request) {
 	s.renderAdmin(w, "admin_edit.html", map[string]any{
 		"Link":  link,
 		"Error": "",
+		"Flash": r.URL.Query().Get("flash"),
 	})
 }
 
@@ -250,6 +251,33 @@ func (s *Server) adminPostDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/admin?flash=Link+deleted", http.StatusSeeOther)
+}
+
+// adminPostMetadata refetches metadata for an existing link.
+func (s *Server) adminPostMetadata(w http.ResponseWriter, r *http.Request) {
+	link := s.adminFetchLink(w, r)
+	if link == nil {
+		return
+	}
+
+	meta := FetchPageMeta(link.URL)
+	overwriteTitle := strings.TrimSpace(link.Title) == "" || strings.TrimSpace(link.Title) == link.URL
+	if meta.Title == "" {
+		meta.Title = link.URL
+	}
+
+	updated, err := s.db.UpdateLinkMetadata(link.ID, meta, overwriteTitle)
+	if err != nil {
+		slog.Error("admin: failed to update link metadata", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if updated == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/admin/links/%d/edit?flash=Metadata+refetched", link.ID), http.StatusSeeOther)
 }
 
 // --- Helpers ---
