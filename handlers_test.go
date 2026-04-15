@@ -84,12 +84,18 @@ func TestAPICreateLinkReturnsExistingLinkForDuplicateURL(t *testing.T) {
 		t.Fatalf("unexpected Location header %q", got)
 	}
 
-	var link Link
-	if err := json.NewDecoder(rec.Body).Decode(&link); err != nil {
+	var resp CreateLinkResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if link.ID != existing.ID || link.Commentary != "original note" || link.Tags != "original" || link.Pinned {
-		t.Fatalf("expected existing unmodified link, got %+v", link)
+	if resp.Status != "duplicate" || !resp.Duplicate || resp.Message != "Already saved: Original Link" {
+		t.Fatalf("unexpected duplicate response metadata: %+v", resp)
+	}
+	if resp.Permalink != "https://links.example.test/link/1" || resp.AdminURL != "https://links.example.test/admin/links/1/edit" {
+		t.Fatalf("unexpected duplicate response URLs: %+v", resp)
+	}
+	if resp.Link == nil || resp.Link.ID != existing.ID || resp.Link.Commentary != "original note" || resp.Link.Tags != "original" || resp.Link.Pinned {
+		t.Fatalf("expected existing unmodified link, got %+v", resp.Link)
 	}
 
 	links, err := db.ListLinks(LinkFilter{})
@@ -98,5 +104,28 @@ func TestAPICreateLinkReturnsExistingLinkForDuplicateURL(t *testing.T) {
 	}
 	if len(links) != 1 {
 		t.Fatalf("expected duplicate request not to create a row, got %d rows", len(links))
+	}
+}
+
+func TestCreateLinkResponseForCreatedLink(t *testing.T) {
+	link := &Link{ID: 42, Title: "Useful Article"}
+	srv := &Server{baseURL: "https://links.example.test"}
+
+	resp := srv.createLinkResponse("created", false, link)
+
+	if resp.Status != "created" || resp.Duplicate {
+		t.Fatalf("unexpected created response metadata: %+v", resp)
+	}
+	if resp.Message != "Saved: Useful Article" {
+		t.Fatalf("unexpected created response message %q", resp.Message)
+	}
+	if resp.Permalink != "https://links.example.test/link/42" {
+		t.Fatalf("unexpected permalink %q", resp.Permalink)
+	}
+	if resp.AdminURL != "https://links.example.test/admin/links/42/edit" {
+		t.Fatalf("unexpected admin URL %q", resp.AdminURL)
+	}
+	if resp.Link != link {
+		t.Fatal("expected response to include link")
 	}
 }

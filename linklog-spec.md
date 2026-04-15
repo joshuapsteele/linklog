@@ -79,19 +79,27 @@ Behavior:
 1. Validate that `url` is present and looks like a URL.
 2. Fetch the page at the URL and extract the `<title>` tag. If the fetch fails or times out (5-second timeout), use the raw URL as the title.
 3. Also attempt to extract the `og:description` or `meta description` tag and store it (add a `description` column if desired, or just discard it; the commentary is the point).
-4. Insert the record into SQLite.
-5. Return 201 with the created link as JSON.
+4. If the exact URL already exists, return 200 with the existing link in the response envelope.
+5. Insert the record into SQLite.
+6. Return 201 with the created link in the response envelope.
 
 Response (JSON):
 ```json
 {
-  "id": 42,
-  "url": "https://example.com/interesting-article",
-  "title": "The State of Web Development in 2026",
-  "commentary": "This is a sharp take on the state of web development.",
-  "tags": "webdev,indieweb",
-  "created_at": "2026-04-13T14:30:00Z",
-  "published": true
+  "status": "created",
+  "duplicate": false,
+  "message": "Saved: The State of Web Development in 2026",
+  "permalink": "https://links.joshuapsteele.com/link/42",
+  "admin_url": "https://links.joshuapsteele.com/admin/links/42/edit",
+  "link": {
+    "id": 42,
+    "url": "https://example.com/interesting-article",
+    "title": "The State of Web Development in 2026",
+    "commentary": "This is a sharp take on the state of web development.",
+    "tags": "webdev,indieweb",
+    "created_at": "2026-04-13T14:30:00Z",
+    "published": true
+  }
 }
 ```
 

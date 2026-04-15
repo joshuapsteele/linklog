@@ -54,8 +54,8 @@ func (s *Server) apiCreateLink(w http.ResponseWriter, r *http.Request) {
 	if existing != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("X-LinkLog-Duplicate", "true")
-		w.Header().Set("Location", fmt.Sprintf("%s/link/%d", s.baseURL, existing.ID))
-		json.NewEncoder(w).Encode(existing)
+		w.Header().Set("Location", s.linkPermalink(existing.ID))
+		json.NewEncoder(w).Encode(s.createLinkResponse("duplicate", true, existing))
 		return
 	}
 
@@ -73,8 +73,10 @@ func (s *Server) apiCreateLink(w http.ResponseWriter, r *http.Request) {
 	SendWebmentionAsync(s.db, link.ID, link.URL, fmt.Sprintf("%s/link/%d", s.baseURL, link.ID))
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-LinkLog-Duplicate", "false")
+	w.Header().Set("Location", s.linkPermalink(link.ID))
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(link)
+	json.NewEncoder(w).Encode(s.createLinkResponse("created", false, link))
 }
 
 // apiDeleteLink handles DELETE /api/links/{id}.
@@ -594,6 +596,38 @@ func (s *Server) render(w http.ResponseWriter, name string, data any) {
 	if err := t.ExecuteTemplate(w, "base", data); err != nil {
 		slog.Error("template render error", "template", name, "error", err)
 	}
+}
+
+func (s *Server) createLinkResponse(status string, duplicate bool, link *Link) CreateLinkResponse {
+	message := "Saved"
+	if duplicate {
+		message = "Already saved"
+	}
+	if link != nil && link.Title != "" {
+		message += ": " + link.Title
+	}
+
+	var id int64
+	if link != nil {
+		id = link.ID
+	}
+
+	return CreateLinkResponse{
+		Status:    status,
+		Duplicate: duplicate,
+		Message:   message,
+		Permalink: s.linkPermalink(id),
+		AdminURL:  s.linkAdminURL(id),
+		Link:      link,
+	}
+}
+
+func (s *Server) linkPermalink(id int64) string {
+	return fmt.Sprintf("%s/link/%d", s.baseURL, id)
+}
+
+func (s *Server) linkAdminURL(id int64) string {
+	return fmt.Sprintf("%s/admin/links/%d/edit", s.baseURL, id)
 }
 
 func pageNum(r *http.Request) int {

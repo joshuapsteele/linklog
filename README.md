@@ -136,6 +136,21 @@ All API routes require an `Authorization: Bearer <token>` header matching `LINKL
 
 If the exact URL already exists, LinkLog returns the existing link as JSON with `200 OK`, `X-LinkLog-Duplicate: true`, and a `Location` header pointing at the existing public permalink. It does not update the existing row.
 
+Successful create responses are shaped for Drafts:
+
+```json
+{
+  "status": "created",
+  "duplicate": false,
+  "message": "Saved: Example Article",
+  "permalink": "https://links.joshuapsteele.com/link/42",
+  "admin_url": "https://links.joshuapsteele.com/admin/links/42/edit",
+  "link": { "...": "..." }
+}
+```
+
+Duplicate responses use `"status": "duplicate"`, `"duplicate": true`, and a message like `Already saved: Example Article`.
+
 **GET /api/links** — List all links as JSON. Optional query parameters: `?q=sqlite`, `?tag=go`, `?published=false`, `?pinned=true`, `?limit=50`.
 
 **PATCH /api/links/{id}** — Partial update. Send only the fields you want to change, including `pinned` for promoting a link to the pinned page. Metadata fields can also be edited: `description`, `site_name`, `image_url`, and `canonical_url`.
@@ -211,7 +226,7 @@ go,indieweb,lean
 This is a sharp take on keeping things simple.
 ```
 
-Line 1 is the URL, line 2 is comma-separated tags (optional), and everything after that is your commentary. The action script at `drafts/linklog-action.js` handles parsing, API authentication, and posting. It stores the API token securely using Drafts' credential system.
+Line 1 is the URL, line 2 is comma-separated tags (optional), and everything after that is your commentary. The action script at `drafts/linklog-action.js` handles parsing, API authentication, and posting. It stores the API token securely using Drafts' credential system and shows the server's saved/duplicate message after posting.
 
 The server automatically fetches the page title, so you don't need to include it in the draft.
 

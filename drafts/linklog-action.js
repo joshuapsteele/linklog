@@ -41,13 +41,20 @@ if (!url.startsWith("http://") && !url.startsWith("https://")) {
         }
     });
 
+    var payload = {};
+    try {
+        payload = JSON.parse(response.responseText || "{}");
+    } catch (e) {
+        payload = {};
+    }
+
     if (response.success) {
-        app.displaySuccessMessage("Link posted!");
+        app.displaySuccessMessage(payload.message || "Link posted!");
         // Archive the draft after successful posting.
         draft.isArchived = true;
         draft.update();
     } else {
-        app.displayErrorMessage("Failed: " + response.statusCode);
+        app.displayErrorMessage((payload.error || "Failed") + " (" + response.statusCode + ")");
         context.fail();
     }
 }

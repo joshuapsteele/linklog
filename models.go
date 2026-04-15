@@ -138,6 +138,16 @@ type CreateLinkRequest struct {
 	Pinned     bool   `json:"pinned"`
 }
 
+// CreateLinkResponse is returned by POST /api/links.
+type CreateLinkResponse struct {
+	Status    string `json:"status"`
+	Duplicate bool   `json:"duplicate"`
+	Message   string `json:"message"`
+	Permalink string `json:"permalink"`
+	AdminURL  string `json:"admin_url"`
+	Link      *Link  `json:"link"`
+}
+
 // UpdateLinkRequest is the JSON body for PATCH /api/links/{id}.
 // All fields are pointers so we can distinguish "not provided" from "set to zero value".
 type UpdateLinkRequest struct {
