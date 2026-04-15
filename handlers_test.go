@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -57,5 +58,45 @@ func TestFeedPinnedJSONOnlyReturnsPublishedPinnedLinks(t *testing.T) {
 	}
 	if feed.Items[0].Image != "https://example.com/pinned.png" {
 		t.Fatalf("expected metadata image in feed item, got %q", feed.Items[0].Image)
+	}
+}
+
+func TestAPICreateLinkReturnsExistingLinkForDuplicateURL(t *testing.T) {
+	db := openTestDB(t)
+	existing := insertTestLink(t, db, "https://example.com/duplicate", "Original Link", "original note", "original", false, PageMeta{
+		Title: "Original Link",
+	})
+
+	srv := &Server{db: db, baseURL: "https://links.example.test"}
+	body := bytes.NewBufferString(`{"url":"https://example.com/duplicate","commentary":"new note","tags":"new","pinned":true}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/links", body)
+	rec := httptest.NewRecorder()
+
+	srv.apiCreateLink(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if got := rec.Header().Get("X-LinkLog-Duplicate"); got != "true" {
+		t.Fatalf("expected duplicate header true, got %q", got)
+	}
+	if got := rec.Header().Get("Location"); got != "https://links.example.test/link/1" {
+		t.Fatalf("unexpected Location header %q", got)
+	}
+
+	var link Link
+	if err := json.NewDecoder(rec.Body).Decode(&link); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if link.ID != existing.ID || link.Commentary != "original note" || link.Tags != "original" || link.Pinned {
+		t.Fatalf("expected existing unmodified link, got %+v", link)
+	}
+
+	links, err := db.ListLinks(LinkFilter{})
+	if err != nil {
+		t.Fatalf("list links: %v", err)
+	}
+	if len(links) != 1 {
+		t.Fatalf("expected duplicate request not to create a row, got %d rows", len(links))
 	}
 }

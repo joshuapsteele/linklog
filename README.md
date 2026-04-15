@@ -134,6 +134,8 @@ All API routes require an `Authorization: Bearer <token>` header matching `LINKL
 }
 ```
 
+If the exact URL already exists, LinkLog returns the existing link as JSON with `200 OK`, `X-LinkLog-Duplicate: true`, and a `Location` header pointing at the existing public permalink. It does not update the existing row.
+
 **GET /api/links** — List all links as JSON. Optional query parameters: `?q=sqlite`, `?tag=go`, `?published=false`, `?pinned=true`, `?limit=50`.
 
 **PATCH /api/links/{id}** — Partial update. Send only the fields you want to change, including `pinned` for promoting a link to the pinned page. Metadata fields can also be edited: `description`, `site_name`, `image_url`, and `canonical_url`.

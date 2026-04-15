@@ -120,6 +120,31 @@ func TestListLinksPinnedFilter(t *testing.T) {
 	}
 }
 
+func TestGetLinkByURL(t *testing.T) {
+	db := openTestDB(t)
+
+	inserted := insertTestLink(t, db, "https://example.com/saved", "Saved", "note", "test", false, PageMeta{Title: "Saved"})
+
+	found, err := db.GetLinkByURL("https://example.com/saved")
+	if err != nil {
+		t.Fatalf("get link by URL: %v", err)
+	}
+	if found == nil {
+		t.Fatal("expected link to be found")
+	}
+	if found.ID != inserted.ID || found.Title != "Saved" {
+		t.Fatalf("unexpected found link: %+v", found)
+	}
+
+	missing, err := db.GetLinkByURL("https://example.com/missing")
+	if err != nil {
+		t.Fatalf("get missing link by URL: %v", err)
+	}
+	if missing != nil {
+		t.Fatalf("expected missing URL to return nil, got %+v", missing)
+	}
+}
+
 func TestListLinksSearchesMetadataFields(t *testing.T) {
 	db := openTestDB(t)
 

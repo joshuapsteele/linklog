@@ -155,6 +155,20 @@ func (s *Server) adminPostNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	existing, err := s.db.GetLinkByURL(url)
+	if err != nil {
+		slog.Error("admin: failed to check duplicate link", "error", err)
+		s.renderAdmin(w, "admin_new.html", map[string]any{
+			"Error": "Failed to check for duplicates: " + err.Error(),
+			"Form":  formVals,
+		})
+		return
+	}
+	if existing != nil {
+		http.Redirect(w, r, fmt.Sprintf("/admin/links/%d/edit?flash=Link+already+exists", existing.ID), http.StatusSeeOther)
+		return
+	}
+
 	// Fetch title from the page unless the user supplied one.
 	meta := FetchPageMeta(url)
 	if title != "" {

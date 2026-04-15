@@ -143,6 +143,17 @@ func (db *DB) GetLink(id int64) (*Link, error) {
 	return scanLink(row)
 }
 
+// GetLinkByURL returns a single link by exact URL, or nil if not found.
+func (db *DB) GetLinkByURL(url string) (*Link, error) {
+	row := db.conn.QueryRow(
+		`SELECT id, url, title, commentary, tags, description, site_name, image_url, canonical_url, created_at, updated_at, published, pinned, webmention_status, webmention_endpoint
+		 FROM links WHERE url = ?
+		 ORDER BY created_at DESC
+		 LIMIT 1`, url,
+	)
+	return scanLink(row)
+}
+
 // DeleteLink deletes a link by ID. Returns true if a row was deleted.
 func (db *DB) DeleteLink(id int64) (bool, error) {
 	result, err := db.conn.Exec(`DELETE FROM links WHERE id = ?`, id)

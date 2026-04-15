@@ -44,6 +44,20 @@ func (s *Server) apiCreateLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	existing, err := s.db.GetLinkByURL(req.URL)
+	if err != nil {
+		slog.Error("failed to check duplicate link", "error", err)
+		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+		return
+	}
+	if existing != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-LinkLog-Duplicate", "true")
+		w.Header().Set("Location", fmt.Sprintf("%s/link/%d", s.baseURL, existing.ID))
+		json.NewEncoder(w).Encode(existing)
+		return
+	}
+
 	// Fetch page metadata in the background of this request.
 	meta := FetchPageMeta(req.URL)
 
